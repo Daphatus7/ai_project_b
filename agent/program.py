@@ -56,7 +56,7 @@ class Agent:
         turn. You should use it to update the agent's internal game state. 
         """
 
-        # --------- This is called after the referee validates the action ----
+        # --------- This is called after the referee validates the action ---------
 
         # There are two possible action types: MOVE and GROW. Below we check
         # which type of action was played and print out the details of the
