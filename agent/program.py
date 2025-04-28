@@ -29,10 +29,16 @@ class Agent:
         to take an action. It must always return an action object. 
         """
 
+
         # Below we have hardcoded two actions to be played depending on whether
         # the agent is playing as BLUE or RED. Obviously this won't work beyond
         # the initial moves of the game, so you should use some game playing
         # technique(s) to determine the best action to take.
+
+
+        #-------decide the action to take-------
+
+
         match self._color:
             case PlayerColor.RED:
                 print("Testing: RED is playing a MOVE action")
@@ -49,6 +55,8 @@ class Agent:
         This method is called by the referee after a player has taken their
         turn. You should use it to update the agent's internal game state. 
         """
+
+        # --------- This is called after the referee validates the action ----
 
         # There are two possible action types: MOVE and GROW. Below we check
         # which type of action was played and print out the details of the

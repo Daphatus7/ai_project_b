@@ -1,0 +1,7 @@
+
+
+
+
+class MinMaxSearch:
+    def __init__(self):
+        pass
