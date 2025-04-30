@@ -17,7 +17,7 @@ class Agent:
         This constructor method runs when the referee instantiates the agent.
         Any setup and/or precomputation should be done here.
         """
-        """ # Print a clear separator for initialization debugging
+        # Print a clear separator for initialization debugging
         print("\n" + "="*50)
         print("INITIALIZING AGENT")
         print("="*50)
@@ -27,13 +27,10 @@ class Agent:
         
         # Store our color
         self._color = color
-        print(f"Agent color: {self._color}") """
+        print(f"Agent color: {self._color}")
         
         # Initialize with a dictionary-based board representation
         self._board = {}
-        
-        """ # Setup initial board state
-        print("\nSetting up initial board state...") """
         
         # Empty cells
         for r in range(BOARD_N):
@@ -58,8 +55,8 @@ class Agent:
         # Set minimax search depth
         self._search_depth = 3
             
-        """ # Print the initial board state using ASCII representation
-        self._print_board() """
+        # Print the initial board state using ASCII representation
+        # self._print_board()
 
     def _print_board(self):
         """

@@ -18,8 +18,7 @@ class MinMaxSearch:
         self.best_move = None
         self.cached_states = {}
 
-
-    def min_max_value(self, board: dict[Coord, CellState], depth: int, maximizing_player : bool) -> int:
+    def min_max_value(self, board: dict[Coord, CellState], depth: int, maximizing_player: bool) -> int:
         if self.terminal_test():
             return self.evaluation_function()
         if maximizing_player:
@@ -29,15 +28,14 @@ class MinMaxSearch:
                     value = self.min_max_value(self.apply_move(board, move), depth - 1, False)
                     max_value = max(max_value, value)
             return max_value
-        else :
+        else:
             min_value = int('inf')
             for move in self.get_possible_moves():
                 if self.is_valid_move(board, move):
                     new_board = self.apply_move(board, move)
-                    value = self.min_max_value(new_board ,depth - 1, True)
+                    value = self.min_max_value(new_board, depth - 1, True)
                     min_value = min(min_value, value)
             return min_value
-        
 
     def is_valid_move(self, board: dict[Coord, CellState], move: Action) -> bool:
         """
@@ -51,10 +49,9 @@ class MinMaxSearch:
 
         for direction in directions:
             if direction in not_valid_directions:
-                return False          
+                return False
 
         return True
-    
 
     def terminal_test(self, board: dict[Coord, CellState]) -> bool:
         """
@@ -67,24 +64,20 @@ class MinMaxSearch:
                 return True
             if cell.state == PlayerColor.BLUE and coord.row == 0:
                 return True
-        
-        return False
-    
 
-    def apply_move(self,board: dict[Coord, CellState], move: Action) -> dict[Coord, CellState]:
+        return False
+
+    def apply_move(self, board: dict[Coord, CellState], move: Action) -> dict[Coord, CellState]:
         """
         Apply the move to the board
         """
         pass
 
-
-    def evaluation_function(self)-> int:
+    def evaluation_function(self) -> int:
         return int('inf')
-    
 
-    def get_possible_moves(self)-> list[Action]:
+    def get_possible_moves(self) -> list[Action]:
         pass
-
 
     def get_best_move(self) -> Action:
         """
@@ -101,7 +94,7 @@ class MinMaxSearch:
                 if value > best_value:
                     best_value = value
                     best_move = move
-                    
+
         self.best_move = best_move
 
         return best_move
