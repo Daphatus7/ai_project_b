@@ -26,8 +26,9 @@ class Agent:
         print(f"Referee params: {referee}")
         
         # Store our color
+        """
         self._color = color
-        print(f"Agent color: {self._color}") """
+        print(f"Agent color: {self._color}")
         
         # Initialize with a dictionary-based board representation
         self._board = {}

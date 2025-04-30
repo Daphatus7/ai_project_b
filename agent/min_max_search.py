@@ -19,14 +19,16 @@ class MinMaxSearch:
     def min_max_value(self, board: dict[Coord, CellState], depth: int, maximizing_player : bool) -> int:
         if self.terminal_test():
             return self.evaluation_function()
+
         if maximizing_player:
             max_value = int('-inf')
-            for move in self.get_possible_moves():
-                if self.is_valid_move(board, move):
-                    value = self.min_max_value(self.apply_move(board, move), depth - 1, False)
-                    max_value = max(max_value, value)
-            return max_value
-        else :
+            for frog in board:
+                for move in self.get_possible_moves():
+                    if self.is_valid_move(board, move):
+                        value = self.min_max_value(self.apply_move(board, move), depth - 1, False)
+                        max_value = max(max_value, value)
+                        return max_value
+        else:
             min_value = int('inf')
             for move in self.get_possible_moves():
                 if self.is_valid_move(board, move):
