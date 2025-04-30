@@ -1,0 +1,10 @@
+.idea/inspectionProfiles/Project_Default.xml
+.idea/inspectionProfiles/profiles_settings.xml
+.idea/vcs.xml
+.idea/part_b.iml
+.idea/modules.xml
+.idea/misc.xml
+.idea/encodings.xml
+__pycache__/
+*.py[cod]
+referee/
