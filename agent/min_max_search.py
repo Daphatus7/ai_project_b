@@ -76,8 +76,22 @@ class MinMaxSearch:
     def evaluation_function(self) -> int:
         return int('inf')
 
-    def get_possible_moves(self) -> list[Action]:
-        pass
+    def get_possible_moves(self, board: dict[Coord, CellState], color: PlayerColor) -> list[Action]:
+        """
+        Get all possible moves
+        """
+
+        # Always with grow option
+        moves = []
+        moves.append(GrowAction())
+
+        # Find all of player's frogs
+        player_frogs = [coord for coord, cell in board.items()
+                        if cell.state == color]
+
+        # Continue on
+
+
 
     def get_best_move(self) -> Action:
         """
