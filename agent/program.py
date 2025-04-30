@@ -1,10 +1,10 @@
 # COMP30024 Artificial Intelligence, Semester 1 2025
 # Project Part B: Game Playing Agent
-
+from agent.min_max_search import MinMaxSearch
 from referee.game import PlayerColor, Coord, Direction, \
     Action, MoveAction, GrowAction
 from referee.game.board import CellState, BOARD_N
-    
+
 
 class Agent:
     """
@@ -29,40 +29,40 @@ class Agent:
         """
         self._color = color
         print(f"Agent color: {self._color}")
-        
+
         # Initialize with a dictionary-based board representation
-        self._board = {}
-        
+        self._board : dict[Coord, str] = {}
+
         """ # Setup initial board state
         print("\nSetting up initial board state...") """
-        
-        # Empty cells
-        for r in range(BOARD_N):
-            for c in range(BOARD_N):
-                self._board[Coord(r, c)] = CellState()
-        
+
+        # # Empty cells - don't need empty cells
+        # for r in range(BOARD_N):
+        #     for c in range(BOARD_N):
+        #         self._board[Coord(r, c)] = CellState()
+
         # Corner lily pads
         for r in [0, BOARD_N - 1]:
             for c in [0, BOARD_N - 1]:
-                self._board[Coord(r, c)] = CellState("LilyPad")
+                self._board[Coord(r, c)] = 'l'
 
         # Middle row lily pads
         for r in [1, BOARD_N - 2]:
             for c in range(1, BOARD_N - 1):
-                self._board[Coord(r, c)] = CellState("LilyPad")
-            
+                self._board[Coord(r, c)] = 'l'
+
         # Initial RED and BLUE pieces
         for c in range(1, BOARD_N - 1):
-            self._board[Coord(0, c)] = CellState(PlayerColor.RED)
-            self._board[Coord(BOARD_N - 1, c)] = CellState(PlayerColor.BLUE)
-        
+            self._board[Coord(0, c)] = 'r'
+            self._board[Coord(BOARD_N - 1, c)] = 'b'
+
         # Set minimax search depth
         self._search_depth = 3
-            
-        """ # Print the initial board state using ASCII representation
-        self._print_board() """
+        self.__brain = MinMaxSearch(self._board, self._search_depth, self._color)
 
-    def _print_board(self):
+        #self.__print_board()
+
+    def __print_board(self):
         """
         Print a text representation of the current board state.
         """
@@ -95,16 +95,7 @@ class Agent:
         # the agent is playing as BLUE or RED. Obviously this won't work beyond
         # the initial moves of the game, so you should use some game playing
         # technique(s) to determine the best action to take.
-        match self._color:
-            case PlayerColor.RED:
-                print("Testing: RED is playing a MOVE action")
-                return MoveAction(
-                    Coord(0, 3),
-                    [Direction.Down]
-                )
-            case PlayerColor.BLUE:
-                print("Testing: BLUE is playing a GROW action")
-                return GrowAction()
+        return self.__brain.min_max_value(self._board, self._color,self._search_depth,  True)
 
     def update(self, color: PlayerColor, action: Action, **referee: dict):
         """
