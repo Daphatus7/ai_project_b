@@ -12,13 +12,13 @@ class MinMaxSearch:
         """
         self.board = board
         self.depth = depth
+        self.color = color
         self.best_move = None
         self.cached_states = {}
 
     def min_max_value(self, board: dict[Coord, str], color : PlayerColor, depth: int, maximizing_player : bool) -> int:
         if self.terminal_test():
             return self.evaluation_function()
-
         if maximizing_player:
             max_value = int('-inf')
             #for each frog on the board
@@ -61,7 +61,7 @@ class MinMaxSearch:
         """
         pass
 
-    def evaluation_function(self)-> int:
+    def evaluation_function(self) -> int:
         return int('inf')
 
     def opposite_color(self, color: PlayerColor) -> PlayerColor|None:
@@ -108,3 +108,23 @@ class MinMaxSearch:
         jumps = []
     def bfs(self, start: Coord, end: Coord) -> list[Coord]:
         return []
+
+    def get_best_move(self) -> Action:
+        """
+        Find the best move using the MinMax algorithm
+        """
+        best_value = int('-inf')
+        best_move = None
+
+        for move in self.get_possible_moves():
+            if self.is_valid_move(self.board, move):
+                new_board = self.apply_move(self.board, move)
+                value = self.min_max_value(new_board, self.depth - 1, False)
+
+                if value > best_value:
+                    best_value = value
+                    best_move = move
+
+        self.best_move = best_move
+
+        return best_move
