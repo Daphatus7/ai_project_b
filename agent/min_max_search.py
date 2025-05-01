@@ -34,9 +34,9 @@ class MinMaxSearch:
                     elif self.is_valid_jump(board, move):
                         # need to check every possible jumps
                         for jump in self.get_all_possible_jumps(board, color):
+                            # every possible destination
+                            # apply the jump
                             ...
-
-
 
         else:
             min_value = int('inf')
@@ -104,8 +104,11 @@ class MinMaxSearch:
     def get_all_possible_jumps(self, board: dict[Coord, str], color: PlayerColor) -> list[Action]:
         """
         Get all possible jumps for the player
+        -returns a series of jumps
         """
         jumps = []
+
+        return jumps
     def bfs(self, start: Coord, end: Coord) -> list[Coord]:
         return []
 
