@@ -27,11 +27,11 @@ class Agent:
         
         # Store our color
         """
-        self._color = color
-        print(f"Agent color: {self._color}")
+        self.__color = color
+        print(f"Agent color: {self.__color}")
 
         # Initialize with a dictionary-based board representation
-        self._board : dict[Coord, str] = {}
+        self._board : dict[Coord, chr] = {}
 
         """ # Setup initial board state
         print("\nSetting up initial board state...") """
@@ -58,7 +58,7 @@ class Agent:
 
         # Set minimax search depth
         self._search_depth = 3
-        self.__brain = MinMaxSearch(self._board, self._search_depth, self._color)
+        self.__brain = MinMaxSearch(self._board, self._search_depth, self.__color)
 
         #self.__print_board()
 
@@ -95,7 +95,7 @@ class Agent:
         # the agent is playing as BLUE or RED. Obviously this won't work beyond
         # the initial moves of the game, so you should use some game playing
         # technique(s) to determine the best action to take.
-        return self.__brain.min_max_value(self._board, self._color,self._search_depth,  True)
+        return None
 
     def update(self, color: PlayerColor, action: Action, **referee: dict):
         """

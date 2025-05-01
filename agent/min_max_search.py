@@ -1,3 +1,5 @@
+from typing import List
+
 from referee.game import Action, Coord, PlayerColor, Direction
 
 
@@ -16,8 +18,9 @@ class MinMaxSearch:
         self.best_move = None
         self.cached_states = {}
 
-    def min_max_value(self, board: dict[Coord, str], color : PlayerColor, depth: int, maximizing_player : bool) -> int:
+    def min_max_value(self, board: dict[Coord, str], color : PlayerColor, depth: int, maximizing_player : bool, action : []) -> int | List[Action] | Action:
         if self.terminal_test():
+            # trace back the serious of actions
             return self.evaluation_function()
         if maximizing_player:
             max_value = int('-inf')
@@ -37,7 +40,6 @@ class MinMaxSearch:
                             # every possible destination
                             # apply the jump
                             ...
-
         else:
             min_value = int('inf')
             for direction in self.get_possible_directions(color):
@@ -101,6 +103,9 @@ class MinMaxSearch:
             #if none ->
             case _:
                 return []
+    def temp_jump_only_consider_one(self, color: PlayerColor) -> list[Direction]:
+        pass
+
     def get_all_possible_jumps(self, board: dict[Coord, str], color: PlayerColor) -> list[Action]:
         """
         Get all possible jumps for the player
