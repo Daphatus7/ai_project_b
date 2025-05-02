@@ -18,14 +18,13 @@ class MinMaxSearch:
         self.best_move = None
         self.cached_states = {}
 
-    def min_max_value(self, curr_board: dict[Coord, str], color : PlayerColor, depth: int, maximizing_player : bool) -> int | List[Action] | Action:
+    def min_max_value(self, curr_board: dict[Coord, str], color : PlayerColor, depth: int, maximizing_player : bool) -> float | List[Action] | Action:
         new_depth = depth - 1
         new_color = self.opposite_color(color)
-        if self.terminal_test():
-            # trace back the serious of actions
-            return self.evaluation_function()
+        if self.terminal_test(curr_board, new_depth):
+            return self.evaluation_function(curr_board, color)
         if maximizing_player:
-            max_value = int('-inf')
+            max_value = float('-inf')
             #for each frog on the board
             value = self.min_max_value(self.apply_action(curr_board, GrowAction), new_color, new_depth, False)
             max_value = max(max_value, value)
@@ -47,7 +46,7 @@ class MinMaxSearch:
                             max_value = max(max_value, value)
             return max_value
         else:
-            min_value = int('inf')
+            min_value = float('inf')
             #for each frog on the board
             value = self.min_max_value(self.apply_action(curr_board, GrowAction), new_color, new_depth, True)
             min_value = min(min_value, value)
@@ -67,6 +66,7 @@ class MinMaxSearch:
                             value = self.min_max_value(self.apply_action(curr_board, jump), new_color, new_depth, True)
                             min_value = min(min_value, value)
             return min_value
+
 
 
     def is_valid_move(self, board: dict[Coord, str], move: Coord) -> bool:
@@ -95,12 +95,12 @@ class MinMaxSearch:
 
     def apply_action(self, board: dict[Coord, str], action: Action) -> dict[Coord, str]:
         """
-        Apply the move to the board and return the new board state.
+        Apply the action to the board and return the new board state.
+        assume the action are valid and is handled in previous methods
         """
+        new_board = board.copy()  # Create a copy to avoid modifying the original
 
         # If it is a move action
-        # assumption that its a valid move -- has checked already
-
         if isinstance(action, MoveAction):
             # Start coordinate of the frog
             start_coord = action.coord
@@ -195,7 +195,7 @@ class MinMaxSearch:
         """
         frogs = []
         for coord, state in board.items():
-            if state.state == color:
+            if state == color:
                 frogs.append(coord)
         return frogs
 
@@ -250,7 +250,7 @@ class MinMaxSearch:
         if cur_board[neighbour_node] == 'r' or cur_board[neighbour_node] == 'b': # is a frog
             #check the direction
             landing_node = neighbour_node + direction
-            if neighbour_node not in cur_board or cur_board[landing_node] != 'l': #if not lily then it cannot land
+            if landing_node not in cur_board or cur_board[landing_node] != 'l': #if not lily then it cannot land
                 return False
             else: return True
         return False

@@ -95,14 +95,14 @@ class Agent:
         # the agent is playing as BLUE or RED. Obviously this won't work beyond
         # the initial moves of the game, so you should use some game playing
         # technique(s) to determine the best action to take.
-        return None
+        return self.__brain.get_best_move()
 
     def update(self, color: PlayerColor, action: Action, **referee: dict):
         """
         This method is called by the referee after a player has taken their
         turn. You should use it to update the agent's internal game state. 
         """
-
+        print(action)
         # There are two possible action types: MOVE and GROW. Below we check
         # which type of action was played and print out the details of the
         # action for demonstration purposes. You should replace this with your
