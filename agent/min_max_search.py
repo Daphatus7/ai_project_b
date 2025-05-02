@@ -40,7 +40,7 @@ class MinMaxSearch:
                         max_value = max(max_value, value)
 
                     #if the next location is a frog -> apply the move ->
-                    elif self.is_valid_jump(curr_board, move):
+                    elif self.can_jump(curr_board, move, direction):
                         # need to check every possible jumps
                         for jump in self.get_all_possible_jumps(move, curr_board , color):
                             value = self.min_max_value(self.apply_action(curr_board, jump), new_color, new_depth, False)
@@ -61,7 +61,7 @@ class MinMaxSearch:
                         value = self.min_max_value(self.apply_action(curr_board, move), new_color, new_depth, True)
                         min_value = min(min_value, value)
                     #if the next location is a frog -> apply the move ->
-                    elif self.is_valid_jump(curr_board, move):
+                    elif self.can_jump(curr_board, move, direction):
                         # need to check every possible jumps
                         for jump in self.get_all_possible_jumps(move, curr_board , color):
                             value = self.min_max_value(self.apply_action(curr_board, jump), new_color, new_depth, True)
@@ -74,24 +74,13 @@ class MinMaxSearch:
         Check if the move is valid
         """
         return move in board and board[move] == 'l'
-    def is_valid_jump(self, board: dict[Coord, str], move: Coord) -> bool:
-        return
 
-    def terminal_test(self, board=None) -> bool:
+    def terminal_test(self, board: dict[Coord, str], depth) -> bool:
         """
         Check if the game is over, i.e., if all frogs of one color are on the opposite side of the board.
         """
-
-        # Check if all RED frogs are at row 7
-        red_frogs = [coord for coord, state in board.items() if state == 'r']
-        if all(frog.r == 7 for frog in red_frogs) and red_frogs:
+        if depth == 0:
             return True
-
-        # Check if all BLUE frogs are at row 0
-        blue_frogs = [coord for coord, state in board.items() if state == 'b']
-        if all(frog.r == 0 for frog in blue_frogs) and blue_frogs:
-            return True
-
         return False
 
     def apply_action(self, board: dict[Coord, str], action: Action) -> dict[Coord, str]:
