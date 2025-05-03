@@ -22,7 +22,6 @@ class MinMaxSearch:
 
 
     def evaluate_min_max(self, curr_board: dict[Coord, str], color : PlayerColor, depth: int, maximizing_player : bool):
-        depth -= 1
         value = float('-inf') if maximizing_player else float('inf')
         # for each frog on the board
         grow_value = self.min_max_value(self.apply_action(curr_board, GrowAction), color, depth, not maximizing_player)
