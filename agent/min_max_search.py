@@ -1,6 +1,8 @@
 from typing import List
 
-from referee.game import Action, Coord, PlayerColor, Direction, MoveAction, GrowAction
+from langsmith import evaluate
+
+from referee.game import Action, Coord, PlayerColor, Direction, MoveAction, GrowAction, board
 
 
 class MinMaxSearch:
@@ -18,56 +20,39 @@ class MinMaxSearch:
         self.best_move = None
         self.cached_states = {}
 
+
+    def evaluate_min_max(self, curr_board: dict[Coord, str], color : PlayerColor, depth: int, maximizing_player : bool):
+        depth -= 1
+        value = float('-inf') if maximizing_player else float('inf')
+        # for each frog on the board
+        grow_value = self.min_max_value(self.apply_action(curr_board, GrowAction), color, depth, not maximizing_player)
+        value = max(value, grow_value) if maximizing_player else min(value, grow_value)
+        for frog in self.get_frog_coords(curr_board, color):
+            # for each possible direction
+            for direction in self.get_possible_directions(color):  # possible moves should also include jumps
+                move = frog + direction
+                # if is a lily pad -> end
+                if self.is_valid_move(curr_board, move):
+                    # apply the move (also removes the lily pad)
+                    move_value = self.min_max_value(self.apply_action(curr_board, move), self.opposite_color(color), depth, not maximizing_player)
+                    value = max(value, move_value) if maximizing_player else min(value, move_value)
+
+                # if the next location is a frog -> apply the move ->
+                elif self.can_jump(curr_board, move, direction):
+                    # need to check every possible jumps
+                    for jump in self.get_all_possible_jumps(move, curr_board, color):
+                        jump_value = self.min_max_value(self.apply_action(curr_board, jump), self.opposite_color(color), depth, not maximizing_player)
+                        value = max(value, jump_value) if maximizing_player else min(value, jump_value)
+        return value
+
     def min_max_value(self, curr_board: dict[Coord, str], color : PlayerColor, depth: int, maximizing_player : bool) -> float | List[Action] | Action:
         new_depth = depth - 1
-        new_color = self.opposite_color(color)
         if self.terminal_test(curr_board, new_depth):
             return self.evaluation_function(curr_board, color)
         if maximizing_player:
-            max_value = float('-inf')
-            #for each frog on the board
-            value = self.min_max_value(self.apply_action(curr_board, GrowAction), new_color, new_depth, False)
-            max_value = max(max_value, value)
-            for frog in self.get_frog_coords(curr_board, color):
-                #for each possible direction
-                for direction in self.get_possible_directions(color): #possible moves should also include jumps
-                    move = frog + direction
-                    #if is a lily pad -> end
-                    if self.is_valid_move(curr_board, move):
-                        # apply the move (also removes the lily pad)
-                        value = self.min_max_value(self.apply_action(curr_board, move), new_color, new_depth, False)
-                        max_value = max(max_value, value)
-
-                    #if the next location is a frog -> apply the move ->
-                    elif self.can_jump(curr_board, move, direction):
-                        # need to check every possible jumps
-                        for jump in self.get_all_possible_jumps(move, curr_board , color):
-                            value = self.min_max_value(self.apply_action(curr_board, jump), new_color, new_depth, False)
-                            max_value = max(max_value, value)
-            return max_value
+            return self.evaluate_min_max(curr_board, color, new_depth, not maximizing_player)
         else:
-            min_value = float('inf')
-            #for each frog on the board
-            value = self.min_max_value(self.apply_action(curr_board, GrowAction), new_color, new_depth, True)
-            min_value = min(min_value, value)
-            for frog in self.get_frog_coords(curr_board, color):
-                #for each possible direction
-                for direction in self.get_possible_directions(color): #possible moves should also include jumps
-                    move = frog + direction
-                    #if is a lily pad -> end
-                    if self.is_valid_move(curr_board, move):
-                        # apply the move (also removes the lily pad)
-                        value = self.min_max_value(self.apply_action(curr_board, move), new_color, new_depth, True)
-                        min_value = min(min_value, value)
-                    #if the next location is a frog -> apply the move ->
-                    elif self.can_jump(curr_board, move, direction):
-                        # need to check every possible jumps
-                        for jump in self.get_all_possible_jumps(move, curr_board , color):
-                            value = self.min_max_value(self.apply_action(curr_board, jump), new_color, new_depth, True)
-                            min_value = min(min_value, value)
-            return min_value
-
-
+            return self.evaluate_min_max(curr_board, color, new_depth, not maximizing_player)
 
     def is_valid_move(self, board: dict[Coord, str], move: Coord) -> bool:
         """
@@ -77,7 +62,9 @@ class MinMaxSearch:
 
     def terminal_test(self, board: dict[Coord, str], depth) -> bool:
         """
-        Check if the game is over, i.e., if all frogs of one color are on the opposite side of the board.
+        check if satisfier terminal condition
+        1. has reached maximum depth
+        2.
         """
         #if has explored the maximum depth
         if depth == 0:
@@ -114,7 +101,7 @@ class MinMaxSearch:
 
             # Apply moves
             for direction in directions:
-                current_pos += direction
+                current_pos = current_pos + direction
 
             # Place the frog at the final position
             new_board[current_pos] = frog_color
@@ -194,11 +181,16 @@ class MinMaxSearch:
         Get the frogs of the player
         """
         frogs = []
+        #get all frogs on the board
+        player_color = ''
+        if color == PlayerColor.RED:
+            player_color = 'r'
+        elif color == PlayerColor.BLUE:
+            player_color = 'b'
         for coord, state in board.items():
-            if state == color:
+            if state == player_color:
                 frogs.append(coord)
         return frogs
-
     def get_possible_directions(self, color : PlayerColor)-> list[Direction]:
         """
         Get the possible moves for the player
@@ -206,38 +198,54 @@ class MinMaxSearch:
         #if red ->
         match color:
             case PlayerColor.RED:
-                return [Direction.RIGHT, Direction.LEFT, Direction.DOWN, Direction.DownLeft, Direction.DownRight]
+                return [Direction.Right, Direction.Left, Direction.Down, Direction.DownLeft, Direction.DownRight]
             #if blue ->
             case PlayerColor.BLUE:
-                return [Direction.RIGHT, Direction.LEFT, Direction.UP, Direction.UpLeft, Direction.UPRight]
+                return [Direction.Right, Direction.Left, Direction.Up, Direction.UpLeft, Direction.UpRight]
             #if none ->
             case _:
                 return []
     def temp_jump_only_consider_one(self, color: PlayerColor) -> list[Direction]:
         pass
 
-    def get_all_possible_jumps(self, curr: Coord, initial_board: dict[Coord, str], color : PlayerColor) -> list[Action]:
+    def get_all_possible_jumps(self, start_coord: Coord, initial_board: dict[Coord, str], color : PlayerColor) -> list[Action]:
         """
         Instead of returning the end coord, it should return all possible actions
         """
-        reachable_nodes = set()
-        stack = [curr] # starting point
-        while stack:
-            exploring_node = stack.pop()
-            if exploring_node in reachable_nodes:
-                continue
-            reachable_nodes.add(exploring_node)
-            #explore all the neighbors
+        moves: List[Action] = []
+
+        def dfs(curr: Coord, path: List[Direction], visited: set[Coord]) -> None:
+            can_jump = False
             for direction in self.get_possible_directions(color):
-                #check if the next node can jump
-                node_can_jump = exploring_node + direction #a frog
-                if self.can_jump(initial_board, node_can_jump, direction): # if the neighbour is a frog
-                    #move current location to the next node
-                    landing_node = exploring_node + direction * 2
-                    stack.append(landing_node)
-                else:# where the jump sequence is ended - so no more
-                    ...
-        return list(reachable_nodes)
+                neighbour = curr + direction
+                if not neighbour in visited:
+                    if self.can_jump(initial_board, neighbour, direction):
+                        landing_node = curr + direction * 2
+                        can_jump = True
+                        dfs(landing_node, path + [direction], visited | {neighbour})
+            if not can_jump and path:
+                moves.append(Action(start_coord, path))
+
+        dfs(start_coord, [], {start_coord})
+        print("all possible jumps", moves)
+        return moves
+        # while stack:
+        #     exploring_node = stack.pop()
+        #     if exploring_node in reachable_nodes:
+        #         continue
+        #     reachable_nodes.add(exploring_node)
+        #     #explore all the neighbors
+        #     for direction in self.get_possible_directions(color):
+        #         #check if the next node can jump
+        #         node_can_jump = exploring_node + direction #a frog
+        #         if self.can_jump(initial_board, node_can_jump, direction): # if the neighbour is a frog
+        #             #move current location to the next node
+        #             landing_node = exploring_node + direction * 2
+        #             stack.append(landing_node)
+        #         else:# where the jump sequence is ended - so no more
+        #             ...
+        # return moves
+
 
     def can_jump(self, cur_board : dict[Coord, str], neighbour_node, direction) -> bool:
         """
@@ -257,44 +265,55 @@ class MinMaxSearch:
 
     def get_best_move(self) -> Action:
         """
-        Find the best move using the MinMax algorithm for the current player.
-        Evaluates all possible actions (grow or move) and returns the one with the best value.
-        Returns an Action object (either GrowAction or MoveAction).
+        Finding the best move
+        1. because we only care about the next move
+        2. we estimate the impact of next move
+        3. then we conclude if the next move is the best
         """
-        # Initialize tracking variables for the best move found
-        best_value = float('-inf')  # Start with worst possible value
+
+        #min value
+        max_value = float('-inf')
         best_move = None  # No move selected yet
+        explore_depth = self.depth - 1
+
 
         # Try a grow action first
         # Growing adds lily pads adjacent to all frogs of the player's color
         grow_action = GrowAction()
         new_board = self.apply_action(self.board.copy(), grow_action)  # Create new board state after grow
         # Evaluate this state from opponent's perspective (minimizing player)
-        grow_value = self.min_max_value(new_board, self.opposite_color(self.color), self.depth - 1, False)
+        grow_value = self.min_max_value(new_board, self.opposite_color(self.color), explore_depth, False)
 
         # Update best move if grow action is better than current best
-        if grow_value > best_value:
-            best_value = grow_value
+        if grow_value > max_value:
+            max_value = grow_value
             best_move = grow_action
 
-        # STRATEGY 2: Try all possible move actions for each frog
-        for frog in self.get_frog_coords(self.board, self.color):  # Iterate through all player's frogs
-            for direction in self.get_possible_directions(self.color):  # Check each valid direction
-                move = frog + direction  # Calculate potential landing position
-
-                # Case 1: Simple move to lily pad
+        # for each frog, we evaluate each possible move.
+        for frog_location in self.get_frog_coords(self.board, self.color):
+            print("checking the frog", frog_location)
+            for direction in self.get_possible_directions(self.color):
+                move = frog_location + direction
+                # if the next cell is a lilypad
                 if self.is_valid_move(self.board, move):
                     # Create a move action with a single direction
-                    move_action = MoveAction(frog, direction)
-                    new_board = self.apply_action(self.board.copy(), move_action)  # Apply move to copy of board
-                    # Evaluate resulting board state from opponent's perspective
-                    move_value = self.min_max_value(new_board, self.opposite_color(self.color), self.depth - 1, False)
-
-                    # Update best move if this move is better
-                    if move_value > best_value:
-                        best_value = move_value
+                    move_action = MoveAction(frog_location, direction)
+                    value = self.min_max_value( self.apply_action(self.board, move_action),
+                                                     self.opposite_color(self.color),
+                                                     explore_depth, False)
+                    if value > max_value:
+                        max_value = max_value
                         best_move = move_action
 
-                # Case 2: Jump sequence (more complex)
-                continue
+                elif self.can_jump(self.board, move, direction):
+                        # need to check every possible jumps
+                        for jump in self.get_all_possible_jumps(move, self.board, self.color):
+                            move_action = MoveAction(frog_location, jump)
+                            value = self.min_max_value(self.apply_action(self.board, move_action),
+                                                       self.opposite_color(self.color),
+                                                       explore_depth, False)
+                            if value > max_value:
+                                max_value = value
+                                best_move = move_action
+        print("best move", best_move)
         return best_move
