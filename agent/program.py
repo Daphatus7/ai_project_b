@@ -57,7 +57,7 @@ class Agent:
             self._board[Coord(BOARD_N - 1, c)] = 'b'
 
         # Set minimax search depth
-        self._search_depth = 3
+        self._search_depth = 3 # error when search depth is 1
         self.__brain = MinMaxSearch(self._board, self._search_depth, self.__color)
 
         #self.__print_board()
@@ -68,22 +68,23 @@ class Agent:
         """
         print("  " + " ".join(str(c) for c in range(BOARD_N)))
         print("  " + "-" * (BOARD_N * 2 - 1))
-        
+
+
         for r in range(BOARD_N):
             row = f"{r}|"
             for c in range(BOARD_N):
-                cell_state = self._board[Coord(r, c)].state
-                if cell_state == PlayerColor.RED:
-                    row += "R"
-                elif cell_state == PlayerColor.BLUE:
-                    row += "B"
-                elif cell_state == "LilyPad":
-                    row += "*"
+                cell = self._board.get(Coord(r, c))
+                if cell == 'r':
+                    row+="R"
+                elif cell == 'b':
+                    row+="B"
+                elif cell == 'l':
+                    row+="*"
                 else:
-                    row += "."
+                    row+="."
                 row += " "
             print(row)
-        
+
 
     def action(self, **referee: dict) -> Action:
         """
@@ -97,12 +98,38 @@ class Agent:
         # technique(s) to determine the best action to take.
         return self.__brain.get_best_move()
 
+    def _convert_board(self, board_data) -> dict[Coord, str]:
+        converted = {}
+        for coord, cell in board_data.items():
+            # Extract state from CellState if needed
+            if isinstance(cell, CellState):
+                state = cell.state
+            else:
+                state = cell
+
+            # Map to internal representation
+            if state == PlayerColor.RED:
+                converted[coord] = 'r'
+            elif state == PlayerColor.BLUE:
+                converted[coord] = 'b'
+            elif str(state) == "LilyPad":  # Handle enum string representation
+                converted[coord] = 'l'
+            else:
+                converted[coord] = '.'  # Empty cells
+        return converted
+
     def update(self, color: PlayerColor, action: Action, **referee: dict):
         """
         This method is called by the referee after a player has taken their
         turn. You should use it to update the agent's internal game state. 
         """
-        print(action)
+        print("referee update actions",  action)
+        self.__brain.apply_action(self.__brain.board, action,self.__color)
+
+        #printout board
+        print("xxxxxxxxxxxxxxxxxxxx")
+        self.__print_board()
+        print("xxxxxxxxxxxxxxxxxxxx")
         # There are two possible action types: MOVE and GROW. Below we check
         # which type of action was played and print out the details of the
         # action for demonstration purposes. You should replace this with your
