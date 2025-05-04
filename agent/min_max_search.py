@@ -190,7 +190,8 @@ class MinMaxSearch:
 
         # Look for other frogs on the board which are not on the opposite side
         red_partial_score = sum((c.r) for c, s in board.items() if s == 'r' and c.r != 7)
-        blue_partial_score = sum((7 - c.r) for c, s in board.items() if s == 'b' and c.r != 0)
+        blue_partial_score = sum((c.r) for c, s in board.items() if s == 'b' and c.r != 0)
+
 
         # Overall score for each player
         red_total_score = red_score * 100 + red_partial_score
@@ -334,7 +335,7 @@ class MinMaxSearch:
         grow_action = GrowAction()
         new_board = self.apply_action(self.board.copy(), grow_action, self.color)  # Create new board state after grow
         # Evaluate this state from opponent's perspective (minimizing player)
-        grow_value = self.min_max_value(new_board, opposite_color(self.color), explore_depth, False)
+        grow_value = self.min_max_value(new_board, opposite_color(self.color), explore_depth, True)
 
         # Update best move if grow action is better than current best
         if grow_value > max_value:
@@ -355,7 +356,7 @@ class MinMaxSearch:
                     move_action = MoveAction(frog_location, direction)
                     value = self.min_max_value( self.apply_action(self.board.copy(), move_action, self.color),
                                                      opposite_color(self.color),
-                                                     explore_depth, False)
+                                                     explore_depth, True)
                     if value > max_value:
                         max_value = value
                         best_move = move_action
@@ -365,7 +366,7 @@ class MinMaxSearch:
                     for jump in self.get_all_possible_jumps(move, self.board, self.color):
                         value = self.min_max_value(self.apply_action(self.board.copy(), jump, self.color),
                                                    opposite_color(self.color),
-                                                   explore_depth, False)
+                                                   explore_depth, True)
                         if value > max_value:
                             max_value = value
                             best_move = jump
