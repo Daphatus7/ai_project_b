@@ -114,7 +114,7 @@ class Agent:
         # the agent is playing as BLUE or RED. Obviously this won't work beyond
         # the initial moves of the game, so you should use some game playing
         # technique(s) to determine the best action to take.
-        next_move = self.__brain.get_best_move()
+        next_move = self.__brain.get_best_move(self.__color)
 
         # Check if the next move is a valid action
         return next_move
@@ -468,7 +468,7 @@ class MinMaxSearch:
         else:
             return self.evaluate_min_max(curr_board, color, new_depth, True)
 
-    def get_best_move(self) -> Action:
+    def get_best_move(self, my_color: PlayerColor) -> Action:
         """
         Finding the best move
         1. because we only care about the next move
@@ -494,11 +494,8 @@ class MinMaxSearch:
             best_move = grow_action
 
         # for each frog, we evaluate each possible move.
-        for frog_location in get_frog_coords(self.board, self.color):
-            if self.board.get(frog_location) != ('r' if self.color == PlayerColor.RED else 'b'):
-                continue
-                
-            for direction in get_possible_directions(self.color):
+        for frog_location in get_frog_coords(self.board, my_color):
+            for direction in get_possible_directions(my_color):
                 move_r = frog_location.r + direction.r
                 move_c = frog_location.c + direction.c
                 if not self.is_on_board(move_c, move_r):
