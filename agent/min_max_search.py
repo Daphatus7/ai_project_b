@@ -249,13 +249,15 @@ class MinMaxSearch:
         def dfs(curr: Coord, path: List[Direction], visited: set[Coord]) -> None:
             can_jump = False
             for direction in get_possible_directions(color):
-                n_r = curr.r + direction.r
-                n_c = curr.c + direction.c
-                if self.is_on_board(n_c, n_r):
+                converted_coord = self.convert_direction_to_coord(direction)
+                n_r = curr.r + converted_coord[0]
+                n_c = curr.c + converted_coord[1]
+                if self.is_on_board(n_c, n_r): # check if the next cell is on the board
                     neighbour = Coord(n_r, n_c)
-                    if not neighbour in visited:
+                    if not neighbour in visited: # check if the next cell is already visited
                         if self.can_jump(initial_board, neighbour, direction):
-                            landing_node = neighbour + direction
+                            landing_node = Coord(neighbour.c + converted_coord[0], neighbour.r + converted_coord[1])
+
                             can_jump = True
                             dfs(landing_node, path + [direction], visited | {landing_node})
             #cannot jump anymore
@@ -266,6 +268,26 @@ class MinMaxSearch:
         dfs(start_coord, [], {start_coord})
         return moves
 
+    def convert_direction_to_coord(self, direction: Direction) -> tuple[int, int]:
+        """
+        Convert the direction to a coordinate
+        """
+        if direction == Direction.Up:
+            return -1, 0
+        elif direction == Direction.Down:
+            return 1, 0
+        elif direction == Direction.Left:
+            return 0, -1
+        elif direction == Direction.Right:
+            return 0, 1
+        elif direction == Direction.UpLeft:
+            return -1, -1
+        elif direction == Direction.UpRight:
+            return -1, 1
+        elif direction == Direction.DownLeft:
+            return 1, -1
+        elif direction == Direction.DownRight:
+            return 1, 1
 
     def can_jump(self, cur_board : dict[Coord, str], neighbour_node, direction) -> bool:
         """
@@ -273,14 +295,17 @@ class MinMaxSearch:
         1. the neighbour_node node must be in the board
         2. the neighbour_node must be a frog
         """
-
         if neighbour_node not in cur_board or cur_board[neighbour_node] == 'l': #
             return False
         if cur_board[neighbour_node] == 'r' or cur_board[neighbour_node] == 'b': # is a frog
             #check the direction
-            landing_node = neighbour_node + direction
-            if landing_node in cur_board and cur_board[landing_node] == 'l': #if not lily then it cannot land
-                return True
+            direction_coord = self.convert_direction_to_coord(direction)
+            landing_c = neighbour_node.c + direction_coord[0]
+            landing_r = neighbour_node.r + direction_coord[1]
+            if self.is_on_board(landing_c, landing_r):
+                landing_node = Coord(landing_r, landing_c)
+                if landing_node in cur_board and cur_board[landing_node] == 'l': #if not lily then it cannot land
+                    return True
         return False
 
     def get_best_move(self) -> Action:

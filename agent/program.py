@@ -126,27 +126,24 @@ class Agent:
         This method is called by the referee after a player has taken their
         turn. You should use it to update the agent's internal game state. 
         """
-        if action is None: return
-
         print("referee update actions",  action)
         print("----------Before-------------")
         self.__print_board()
-        self.__brain = MinMaxSearch(self._board, self._search_depth, self.__color)
         self.__brain.update_board(action, color)
         #printout board
         print("----------After-------------")
         self.__print_board()
-        # There are two possible action types: MOVE and GROW. Below we check
-        # which type of action was played and print out the details of the
-        # action for demonstration purposes. You should replace this with your
-        # own logic to update your agent's internal game state representation.
-        match action:
-            case MoveAction(coord, dirs):
-                dirs_text = ", ".join([str(dir) for dir in dirs])
-                print(f"Testing: {color} played MOVE action:")
-                print(f"  Coord: {coord}")
-                print(f"  Directions: {dirs_text}")
-            case GrowAction():
-                print(f"Testing: {color} played GROW action")
-            case _:
-                raise ValueError(f"Unknown action type: {action}")
+        # # There are two possible action types: MOVE and GROW. Below we check
+        # # which type of action was played and print out the details of the
+        # # action for demonstration purposes. You should replace this with your
+        # # own logic to update your agent's internal game state representation.
+        # match action:
+        #     case MoveAction(coord, dirs):
+        #         dirs_text = ", ".join([str(dir) for dir in dirs])
+        #         print(f"Testing: {color} played MOVE action:")
+        #         print(f"  Coord: {coord}")
+        #         print(f"  Directions: {dirs_text}")
+        #     case GrowAction():
+        #         print(f"Testing: {color} played GROW action")
+        #     case _:
+        #         raise ValueError(f"Unknown action type: {action}")
