@@ -256,10 +256,10 @@ class MinMaxSearch:
                     neighbour = Coord(n_r, n_c)
                     if not neighbour in visited: # check if the next cell is already visited
                         if self.can_jump(initial_board, neighbour, direction):
-                            landing_node = Coord(neighbour.c + converted_coord[0], neighbour.r + converted_coord[1])
+                            landing_node = Coord(neighbour.r + converted_coord[0], neighbour.c + converted_coord[1])
 
                             can_jump = True
-                            dfs(landing_node, path + [direction], visited | {landing_node})
+                            dfs(landing_node, path + [direction], visited | {neighbour, landing_node})
             #cannot jump anymore
             if not can_jump:
                 if path:
