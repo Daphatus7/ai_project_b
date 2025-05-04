@@ -146,9 +146,9 @@ class MinMaxSearch:
         if terminal_test(curr_board, new_depth):
             return self.evaluation_function(curr_board, color)
         if maximizing_player:
-            return self.evaluate_min_max(curr_board, color, new_depth, not maximizing_player)
+            return self.evaluate_min_max(curr_board, color, new_depth, False)
         else:
-            return self.evaluate_min_max(curr_board, color, new_depth, not maximizing_player)
+            return self.evaluate_min_max(curr_board, color, new_depth, True)
 
     @staticmethod
     def is_on_board(column, row) -> bool:
@@ -303,6 +303,7 @@ class MinMaxSearch:
             landing_c = neighbour_node.c + direction_coord[0]
             landing_r = neighbour_node.r + direction_coord[1]
             if self.is_on_board(landing_c, landing_r):
+                print("landing coord is on board", landing_r, landing_c)
                 landing_node = Coord(landing_r, landing_c)
                 if landing_node in cur_board and cur_board[landing_node] == 'l': #if not lily then it cannot land
                     return True
