@@ -124,12 +124,14 @@ class Agent:
         turn. You should use it to update the agent's internal game state. 
         """
         print("referee update actions",  action)
-        self.__brain.apply_action(self.__brain.board, action,self.__color)
-
-        #printout board
-        print("xxxxxxxxxxxxxxxxxxxx")
+        print("----------Before-------------")
         self.__print_board()
-        print("xxxxxxxxxxxxxxxxxxxx")
+
+
+        self.__brain.update_board(action, color)
+        #printout board
+        print("----------After-------------")
+        self.__print_board()
         # There are two possible action types: MOVE and GROW. Below we check
         # which type of action was played and print out the details of the
         # action for demonstration purposes. You should replace this with your
