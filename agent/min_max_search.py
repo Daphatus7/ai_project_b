@@ -53,7 +53,9 @@ def get_possible_directions(color : PlayerColor)-> list[Direction]:
 
 def is_valid_move(board: dict[Coord, str], move: Coord) -> bool:
     """
-    Check if the move is valid
+    Check if the move is valid:
+    1. The coordinate exists on the board
+    2. The coordinate contains a lily pad
     """
     return move in board and board[move] == 'l'
 
@@ -94,28 +96,28 @@ class MinMaxSearch:
         self.best_move = None
         self.cached_states = {}
 
-    def print_board(self, print_board: dict[Coord, str]):
-        """
-        Print a text representation of the current board state.
-        """
-        print("  " + " ".join(str(c) for c in range(BOARD_N)))
-        print("  " + "-" * (BOARD_N * 2 - 1))
-
-
-        for r in range(BOARD_N):
-            row = f"{r}|"
-            for c in range(BOARD_N):
-                cell = print_board.get(Coord(r, c))
-                if cell == 'r':
-                    row+="R"
-                elif cell == 'b':
-                    row+="B"
-                elif cell == 'l':
-                    row+="*"
-                else:
-                    row+="."
-                row += " "
-            print(row)
+    # def print_board(self, print_board: dict[Coord, str]):
+    #     """
+    #     Print a text representation of the current board state.
+    #     """
+    #     print("  " + " ".join(str(c) for c in range(BOARD_N)))
+    #     print("  " + "-" * (BOARD_N * 2 - 1))
+    #
+    #
+    #     for r in range(BOARD_N):
+    #         row = f"{r}|"
+    #         for c in range(BOARD_N):
+    #             cell = print_board.get(Coord(r, c))
+    #             if cell == 'r':
+    #                 row+="R"
+    #             elif cell == 'b':
+    #                 row+="B"
+    #             elif cell == 'l':
+    #                 row+="*"
+    #             else:
+    #                 row+="."
+    #             row += " "
+    #         print(row)
 
     def evaluate_min_max(self, curr_board: dict[Coord, str], color : PlayerColor, depth: int, maximizing_player : bool):
         value = float('-inf') if maximizing_player else float('inf')
@@ -165,11 +167,18 @@ class MinMaxSearch:
         """
         # If it is a move action
         if isinstance(action, MoveAction):
+            directions = action.directions
+            
+            # Case tuple
+            if not isinstance(directions, (list, tuple)):
+                directions = [directions]
+            
             # remove the original player at the location
             frog_color = new_board.pop(action.coord)
             # move the frog
             current_pos = action.coord
-            for direction in action.directions:
+
+            for direction in directions:
                 current_pos = current_pos + direction
                 # is jumping
                 if current_pos in new_board and new_board[current_pos] in ['r', 'b']:
@@ -179,10 +188,8 @@ class MinMaxSearch:
         # grow around the player
         elif isinstance(action, GrowAction):
             for coord, state in list(new_board.items()):
-                print("growing", coord, state)
                 # for all frogs
                 if state in ['r', 'b']:
-                    print("growing", coord, state)
                     # all around the frog
                     for grow_tile in self.get_grow_tiles(coord):
                         # if the tile is empty
@@ -316,15 +323,14 @@ class MinMaxSearch:
                         best_move = move_action
 
                 elif self.can_jump(self.board, move, direction):
-                        # need to check every possible jumps
-                        for jump in self.get_all_possible_jumps(move, self.board, self.color):
-                            print("the jump is ", jump)
-                            move_action = MoveAction(frog_location, jump)
-                            value = self.min_max_value(self.apply_action(self.board.copy(), move_action,self.color),
-                                                       opposite_color(self.color),
-                                                       explore_depth, False)
-                            if value > max_value:
-                                max_value = value
-                                best_move = move_action
+                    # need to check every possible jumps
+                    for jump in self.get_all_possible_jumps(move, self.board, self.color):
+                        print("the jump is ", jump)
+                        value = self.min_max_value(self.apply_action(self.board.copy(), jump, self.color),
+                                                   opposite_color(self.color),
+                                                   explore_depth, False)
+                        if value > max_value:
+                            max_value = value
+                            best_move = jump
         print("best move", best_move)
         return best_move

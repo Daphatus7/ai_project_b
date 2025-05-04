@@ -136,13 +136,13 @@ class Agent:
         # which type of action was played and print out the details of the
         # action for demonstration purposes. You should replace this with your
         # own logic to update your agent's internal game state representation.
-        match action:
-            case MoveAction(coord, dirs):
-                dirs_text = ", ".join([str(dir) for dir in dirs])
-                print(f"Testing: {color} played MOVE action:")
-                print(f"  Coord: {coord}")
-                print(f"  Directions: {dirs_text}")
-            case GrowAction():
-                print(f"Testing: {color} played GROW action")
-            case _:
-                raise ValueError(f"Unknown action type: {action}")
+        # match action:
+        #     case MoveAction(coord, dirs):
+        #         dirs_text = ", ".join([str(dir) for dir in dirs])
+        #         print(f"Testing: {color} played MOVE action:")
+        #         print(f"  Coord: {coord}")
+        #         print(f"  Directions: {dirs_text}")
+        #     case GrowAction():
+        #         print(f"Testing: {color} played GROW action")
+        #     case _:
+        #         raise ValueError(f"Unknown action type: {action}")
