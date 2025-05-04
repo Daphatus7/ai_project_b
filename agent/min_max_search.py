@@ -53,9 +53,7 @@ def get_possible_directions(color : PlayerColor)-> list[Direction]:
 
 def is_valid_move(board: dict[Coord, str], move: Coord) -> bool:
     """
-    Check if the move is valid:
-    1. The coordinate exists on the board
-    2. The coordinate contains a lily pad
+    Check if the move is valid
     """
     return move in board and board[move] == 'l'
 
@@ -96,28 +94,28 @@ class MinMaxSearch:
         self.best_move = None
         self.cached_states = {}
 
-    # def print_board(self, print_board: dict[Coord, str]):
-    #     """
-    #     Print a text representation of the current board state.
-    #     """
-    #     print("  " + " ".join(str(c) for c in range(BOARD_N)))
-    #     print("  " + "-" * (BOARD_N * 2 - 1))
-    #
-    #
-    #     for r in range(BOARD_N):
-    #         row = f"{r}|"
-    #         for c in range(BOARD_N):
-    #             cell = print_board.get(Coord(r, c))
-    #             if cell == 'r':
-    #                 row+="R"
-    #             elif cell == 'b':
-    #                 row+="B"
-    #             elif cell == 'l':
-    #                 row+="*"
-    #             else:
-    #                 row+="."
-    #             row += " "
-    #         print(row)
+    def print_board(self, print_board: dict[Coord, str]):
+        """
+        Print a text representation of the current board state.
+        """
+        print("  " + " ".join(str(c) for c in range(BOARD_N)))
+        print("  " + "-" * (BOARD_N * 2 - 1))
+
+
+        for r in range(BOARD_N):
+            row = f"{r}|"
+            for c in range(BOARD_N):
+                cell = print_board.get(Coord(r, c))
+                if cell == 'r':
+                    row+="R"
+                elif cell == 'b':
+                    row+="B"
+                elif cell == 'l':
+                    row+="*"
+                else:
+                    row+="."
+                row += " "
+            print(row)
 
     def evaluate_min_max(self, curr_board: dict[Coord, str], color : PlayerColor, depth: int, maximizing_player : bool):
         value = float('-inf') if maximizing_player else float('inf')
@@ -179,17 +177,21 @@ class MinMaxSearch:
             current_pos = action.coord
 
             for direction in directions:
-                current_pos = current_pos + direction
-                # is jumping
-                if current_pos in new_board and new_board[current_pos] in ['r', 'b']:
-                    current_pos = current_pos + direction
+                #print("moving", current_pos, direction)
+                new_c = current_pos.c + direction.c
+                new_r = current_pos.r + direction.r
+                if self.is_on_board( new_c, new_r):
+                    current_pos = Coord(new_r, new_c)
+                    if current_pos in new_board and new_board[current_pos] in ['r', 'b']:
+                        current_pos = current_pos + direction
             # destination
             new_board[current_pos] = frog_color
         # grow around the player
         elif isinstance(action, GrowAction):
             for coord, state in list(new_board.items()):
                 # for all frogs
-                if state in ['r', 'b']:
+                compare_color = 'r' if color == PlayerColor.RED else 'b' if color == PlayerColor.BLUE else None
+                if state == compare_color:
                     # all around the frog
                     for grow_tile in self.get_grow_tiles(coord):
                         # if the tile is empty
