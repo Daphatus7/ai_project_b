@@ -495,6 +495,9 @@ class MinMaxSearch:
 
         # for each frog, we evaluate each possible move.
         for frog_location in get_frog_coords(self.board, self.color):
+            if self.board.get(frog_location) != ('r' if self.color == PlayerColor.RED else 'b'):
+                continue
+                
             for direction in get_possible_directions(self.color):
                 move_r = frog_location.r + direction.r
                 move_c = frog_location.c + direction.c
