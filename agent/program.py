@@ -1,6 +1,6 @@
 # COMP30024 Artificial Intelligence, Semester 1 2025
 # Project Part B: Game Playing Agent
-from agent.min_max_search import MinMaxSearch
+from .min_max_search import MinMaxSearch
 from referee.game import PlayerColor, Coord, Direction, \
     Action, MoveAction, GrowAction
 from referee.game.board import CellState, BOARD_N
