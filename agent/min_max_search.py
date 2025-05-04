@@ -125,6 +125,10 @@ class MinMaxSearch:
         for frog in get_frog_coords(curr_board, color):
             # for each possible direction
             for direction in get_possible_directions(color):  # possible moves should also include jumps
+                move_r = frog.r + direction.r
+                move_c = frog.c + direction.c
+                if not self.is_on_board(move_c, move_r):
+                    continue
                 move = frog + direction
                 # if is a lily pad -> end
                 if is_valid_move(curr_board, move):
@@ -341,6 +345,10 @@ class MinMaxSearch:
         # for each frog, we evaluate each possible move.
         for frog_location in get_frog_coords(self.board, self.color):
             for direction in get_possible_directions(self.color):
+                move_r = frog_location.r + direction.r
+                move_c = frog_location.c + direction.c
+                if not self.is_on_board(move_c, move_r):
+                    continue
                 move = frog_location + direction
                 # if the next cell is a lilypad
                 if is_valid_move(self.board, move):
