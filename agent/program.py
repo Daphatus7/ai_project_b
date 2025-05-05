@@ -240,7 +240,6 @@ class MinMaxSearch:
         self.depth = depth
         self.color = color
         self.best_move = None
-        self.cached_states = {}
 
     def print_board(self, print_board: dict[Coord, str]):
         """
@@ -327,29 +326,84 @@ class MinMaxSearch:
                 grow_tiles.append(Coord(new_row, new_col))
         return grow_tiles
 
-    def evaluation_function(self, board: dict[Coord, str], color: PlayerColor) -> float:
+    WEIGHTS = [
+        10,
+        20,
+        30,
+        40,
+        50,
+        60,
+        70,
+        100
+    ]
+
+    def evaluation_function(self, curr_board: dict[Coord, str], my_color: PlayerColor) -> float:
         """
         Evaluate the board state. Higher values are better for the player.
         """
+        """
+            # 1 distance : closer to the goal the higher points - where the enemy 
+            # 2 movements : c
+            # 3 grow count
+            # opponent
+                # 1.
+        """
 
-        # Count the number of frogs on the opposite side of the board and priority
-        red_score = sum(1 for c, s in board.items() if s == 'r' and c.r == 7)
-        blue_score = sum(1 for c, s in board.items() if s == 'b' and c.r == 0)
 
-        # Look for other frogs on the board which are not on the opposite side
-        red_partial_score = sum((c.r) for c, s in board.items() if s == 'r' and c.r != 7)
-        blue_partial_score = sum((c.r) for c, s in board.items() if s == 'b' and c.r != 0)
-
-        # Overall score for each player
-        red_total_score = red_score * 100 + red_partial_score
-        blue_total_score = blue_score * 100 + blue_partial_score
-
-        if color == PlayerColor.RED:
-            return red_total_score - blue_total_score
-        elif color == PlayerColor.BLUE:
-            return blue_total_score - red_total_score
+        frog_color_char = None
+        opponent_color_char = None
+        if my_color == PlayerColor.RED:
+            frog_color_char = 'r'
+            opponent_color_char = 'b'
+        elif my_color == PlayerColor.BLUE:
+            frog_color_char = 'b'
+            opponent_color_char = 'r'
         else:
-            return 0.0
+            assert False
+        goal_row = 0 if my_color == PlayerColor.RED else BOARD_N - 1
+
+        def get_all_frog(color_char : str) -> list[Coord]:
+            frogs = []
+            for cell, state in list(curr_board.items()):
+                if state == color_char:
+                    frogs.append(cell)
+            return frogs
+
+        def evaluate_distance_score(frogs : list[Coord]) -> float:
+            score = 0
+            for frog in frogs:
+                distance = abs(goal_row - frog.r)
+                print(distance)
+                score += self.WEIGHTS[distance]
+            return score
+
+        def evaluate_opponent_distance_score(frogs : list[Coord]) -> float:
+            score = 0
+            for frog in frogs:
+                distance = abs(goal_row - frog.r)
+                score += self.WEIGHTS[distance]
+            return score
+
+        def evaluate_space_score(frog_color : PlayerColor) -> float:
+            """
+            The more freedom the player has the higher the score
+            """
+            score = 0
+            return score
+
+        def evaluate_opponent_space_score(frogs : list[Coord]) -> float:
+            score = 0
+            return score
+
+        total_score = evaluate_distance_score(get_all_frog(
+            frog_color_char,
+        )) - evaluate_opponent_distance_score(
+            get_all_frog(
+                opponent_color_char,
+            )
+        )
+        return total_score
+
 
     def temp_jump_only_consider_one(self, color: PlayerColor) -> list[Direction]:
         pass
