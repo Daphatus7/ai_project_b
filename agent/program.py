@@ -480,10 +480,13 @@ class MinMaxSearch:
         # Landing position must be a lily pad and not occupied by another frog
         return landing_node in cur_board and cur_board[landing_node] == 'l'
 
-    def evaluate_min_max(self, curr_board: dict[Coord, str], color: PlayerColor, depth: int, maximizing_player: bool):
+    def evaluate_min_max(self, curr_board: dict[Coord, str], color: PlayerColor, depth: int,
+                         alpha, beta,
+                         maximizing_player: bool):
         value = float('-inf') if maximizing_player else float('inf')
         # for each frog on the board
         grow_value = self.min_max_value(self.apply_action(curr_board.copy(), GrowAction(), color), color, depth,
+                                        alpha, beta,
                                         not maximizing_player)
         value = max(value, grow_value) if maximizing_player else min(value, grow_value)
         for frog in get_frog_coords(curr_board, color):
@@ -498,28 +501,53 @@ class MinMaxSearch:
                 if is_valid_move(curr_board, move):
                     # apply the move (also removes the lily pad)
                     move_action = MoveAction(frog, direction)
-                    move_value = self.min_max_value(self.apply_action(curr_board.copy(), move_action, color),
-                                                    opposite_color(color), depth, not maximizing_player)
-                    value = max(value, move_value) if maximizing_player else min(value, move_value)
+                    result = self.min_max_value(self.apply_action(curr_board.copy(), move_action, color),
+                                                    opposite_color(color), depth,
+                                                    alpha, beta,
+                                                    not maximizing_player)
+
+                    if maximizing_player:
+                        value = max(value, result)
+                        alpha = max(alpha, result)
+                        if beta <= alpha:
+                            break
+
+                    else:
+                        value = min(value, result)
+                        beta = min(beta, result)
+                        if beta <= alpha:
+                            break
+
 
                 # if the next location is a frog -> apply the move ->
                 elif self.can_jump(curr_board, move, direction):
                     # need to check every possible jumps
                     for jump in self.get_all_possible_jumps(move, curr_board, color):
-                        jump_value = self.min_max_value(self.apply_action(curr_board.copy(), jump, color),
+                        result = self.min_max_value(self.apply_action(curr_board.copy(), jump, color),
+                                                        alpha, beta,
                                                         opposite_color(color), depth, not maximizing_player)
-                        value = max(value, jump_value) if maximizing_player else min(value, jump_value)
+                        if maximizing_player:
+                            value = max(value, result)
+                            alpha = max(alpha, result)
+                            if beta <= alpha:
+                                break
+                        else:
+                            value = min(value, result)
+                            beta = min(beta, result)
+                            if beta <= alpha:
+                                break
         return value
 
     def min_max_value(self, curr_board: dict[Coord, str], color: PlayerColor, depth: int,
+                      alpha, beta,
                       maximizing_player: bool) -> float | List[Action] | Action:
         new_depth = depth - 1
         if terminal_test(curr_board, new_depth):
             return self.evaluation_function(curr_board, color)
         if maximizing_player:
-            return self.evaluate_min_max(curr_board, color, new_depth, False)
+            return self.evaluate_min_max(curr_board, color, new_depth, alpha, beta,False)
         else:
-            return self.evaluate_min_max(curr_board, color, new_depth, True)
+            return self.evaluate_min_max(curr_board, color, new_depth, alpha, beta,True)
 
     def get_best_move(self, my_color: PlayerColor) -> Action:
         """
@@ -531,6 +559,8 @@ class MinMaxSearch:
 
         # min value
         max_value = float('-inf')
+        alpha = float('-inf')
+        beta = float('inf')
         best_move = None  # No move selected yet
         explore_depth = self.depth - 1
 
@@ -539,7 +569,9 @@ class MinMaxSearch:
         grow_action = GrowAction()
         new_board = self.apply_action(self.board.copy(), grow_action, self.color)  # Create new board state after grow
         # Evaluate this state from opponent's perspective (minimizing player)
-        grow_value = self.min_max_value(new_board, opposite_color(self.color), explore_depth, True)
+        grow_value = self.min_max_value(new_board, opposite_color(self.color), explore_depth,
+                                        alpha, beta,
+                                        True)
 
         # Update best move if grow action is better than current best
         if grow_value > max_value:
@@ -560,7 +592,10 @@ class MinMaxSearch:
                     move_action = MoveAction(frog_location, direction)
                     value = self.min_max_value(self.apply_action(self.board.copy(), move_action, self.color),
                                                opposite_color(self.color),
-                                               explore_depth, True)
+                                               explore_depth,
+                                               alpha,
+                                               beta,
+                                               True)
                     if value > max_value:
                         max_value = value
                         best_move = move_action
@@ -570,7 +605,10 @@ class MinMaxSearch:
                     for jump in self.get_all_possible_jumps(move, self.board, self.color):
                         value = self.min_max_value(self.apply_action(self.board.copy(), jump, self.color),
                                                    opposite_color(self.color),
-                                                   explore_depth, True)
+                                                   explore_depth,
+                                                   alpha,
+                                                   beta,
+                                                   True)
                         if value > max_value:
                             max_value = value
                             best_move = jump
