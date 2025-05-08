@@ -521,33 +521,33 @@ class MinMaxSearch:
         goal_row = 0 if my_color == PlayerColor.BLUE else BOARD_N - 1
 
 
-        # 1) instant win, simple steps and jumps
-        for frog in get_frog_coords(self.board, my_color):
-            for direction in get_possible_directions(my_color):
-                # compute candidate step
-                new_r = frog.r + direction.r
-                new_c = frog.c + direction.c
-
-                if not self.is_on_board(new_c, new_r):
-                    continue
-                # straight move to the goal row
-                if is_valid_move(self.board, Coord(new_r, new_c)):
-                    if new_r == goal_row:
-                        return MoveAction(frog, direction)
-
-                # check jump possibility
-                jump_start = Coord(new_r, new_c)
-
-                if self.can_jump(self.board, jump_start, direction):
-                    for jump in self.get_all_possible_jumps(frog, self.board, my_color):
-                        landing_r, landing_c = jump.coord.r, jump.coord.c
-                        for d in jump.directions:
-                            landing_r += d.r
-                            landing_c += d.c
-                            if not self.is_on_board(landing_c, landing_r):
-                                continue
-                            if landing_r == goal_row:
-                                return jump
+        # # 1) instant win, simple steps and jumps
+        # for frog in get_frog_coords(self.board, my_color):
+        #     for direction in get_possible_directions(my_color):
+        #         # compute candidate step
+        #         new_r = frog.r + direction.r
+        #         new_c = frog.c + direction.c
+        #
+        #         if not self.is_on_board(new_c, new_r):
+        #             continue
+        #         # straight move to the goal row
+        #         if is_valid_move(self.board, Coord(new_r, new_c)):
+        #             if new_r == goal_row:
+        #                 return MoveAction(frog, direction)
+        #
+        #         # check jump possibility
+        #         jump_start = Coord(new_r, new_c)
+        #
+        #         if self.can_jump(self.board, jump_start, direction):
+        #             for jump in self.get_all_possible_jumps(frog, self.board, my_color):
+        #                 landing_r, landing_c = jump.coord.r, jump.coord.c
+        #                 for d in jump.directions:
+        #                     landing_r += d.r
+        #                     landing_c += d.c
+        #                     if not self.is_on_board(landing_c, landing_r):
+        #                         continue
+        #                     if landing_r == goal_row:
+        #                         return jump
 
         # min value
         max_value = float('-inf')
