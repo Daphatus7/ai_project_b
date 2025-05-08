@@ -97,7 +97,6 @@ def h_cost(start: Coord, ends: list[Coord]) -> int:
 def is_on_board(r, c):
     return 0 <= r < BOARD_N and 0 <= c < BOARD_N
 
-
 # Check if red frog can jump over a blue frog in a given direction
 def can_jump(curr_board: dict[Coord, str], neighbour_node: Coord, direction: Direction) -> bool:
     """
@@ -479,7 +478,6 @@ class MinMaxSearch:
         def evaluate_distance_score(frogs: list[Coord], color: str) -> float:
             score = 0
             for frog in frogs:
-
 
                 length = pathfinding(curr_board, frog, color)
                 if length is not None:
