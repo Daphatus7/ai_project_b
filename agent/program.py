@@ -321,7 +321,7 @@ class MinMaxSearch:
                 grow_tiles.append(Coord(new_row, new_col))
         return grow_tiles
 
-    WEIGHTS = [5, 10, 15, 30, 40, 50, 70, 100]
+    WEIGHTS = [1, 2, 3, 4, 5, 5, 10, 20, 18]
 
 
     def evaluation_function(self, curr_board: dict[Coord, str], my_color: PlayerColor) -> float:
