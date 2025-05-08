@@ -651,7 +651,7 @@ class MinMaxSearch:
                 # if the next location is a frog -> apply the move ->
                 elif self.can_jump(curr_board, move, direction):
                     # need to check every possible jumps
-                    for jump in self.get_all_possible_jumps(move, curr_board, color):
+                    for jump in self.get_all_possible_jumps(frog, curr_board, color):
                         result = self.min_max_value(self.apply_action(curr_board.copy(), jump, color),
                                                         opposite_color(color), depth,
                                                         alpha,
