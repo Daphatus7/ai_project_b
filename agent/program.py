@@ -472,13 +472,13 @@ class MinMaxSearch:
                     if maximizing_player:
                         value = max(value, result)
                         alpha = max(alpha, result)
-                        if beta <= alpha:
+                        if beta < alpha:
                             break
 
                     else:
                         value = min(value, result)
                         beta = min(beta, result)
-                        if beta <= alpha:
+                        if beta < alpha:
                             break
 
                 # if the next location is a frog -> apply the move ->
@@ -493,14 +493,14 @@ class MinMaxSearch:
                         if maximizing_player:
                             value = max(value, result)
                             alpha = max(alpha, result)
-                            if beta <= alpha:
+                            if beta < alpha:
                                 break
                         else:
                             value = min(value, result)
                             beta = min(beta, result)
-                            if beta <= alpha:
+                            if beta < alpha:
                                 break
-            if beta <= alpha:
+            if beta < alpha:
                 break
         return value
     def min_max_value(self, curr_board: dict[Coord, str], color: PlayerColor, depth: int,
@@ -592,7 +592,7 @@ class MinMaxSearch:
                         max_value = value
                         best_move = move_action
                     alpha = max(alpha, value)
-                    if beta <= alpha:
+                    if beta < alpha:
                         break
 
                 jump_start = Coord(move_r, move_c)
@@ -609,9 +609,9 @@ class MinMaxSearch:
                             max_value = value
                             best_move = jump
                         alpha = max(alpha, value)
-                        if beta <= alpha:
+                        if beta < alpha:
                             break
-            if beta <= alpha:
+            if beta < alpha:
                 break
         print("best move", best_move)
         return best_move
