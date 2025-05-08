@@ -563,7 +563,7 @@ class MinMaxSearch:
         grow_value = self.min_max_value(self.apply_action(curr_board.copy(), GrowAction(), color), color, depth,
                                         alpha, beta,
                                         not maximizing_player)
-
+        value = max(value, grow_value) if maximizing_player else min(value, grow_value)
         for frog in get_frog_coords(curr_board, color):
             # for each possible direction
             for direction in get_possible_directions(color):  # possible moves should also include jumps
