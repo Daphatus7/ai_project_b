@@ -321,6 +321,7 @@ class MinMaxSearch:
                 grow_tiles.append(Coord(new_row, new_col))
         return grow_tiles
 
+
     WEIGHTS = [1, 2, 4, 8, 16, 32, 64, 128, 256]
 
 
