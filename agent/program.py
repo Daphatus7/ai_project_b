@@ -343,12 +343,18 @@ class MinMaxSearch:
 
         goal_row = 0 if my_color == PlayerColor.RED else BOARD_N - 1
 
+
+
         def get_all_frogs(color: str) -> list[Coord]:
             frogs = []
             for cell, state in list(curr_board.items()):
                 if state == color:
                     frogs.append(cell)
             return frogs
+
+        #evaluate the position of frog on the board
+        #frog distance to an available destination
+        #the shorter the distance, the higher the score
 
         def evaluate_distance_score(frogs: list[Coord]) -> float:
             score = 0
@@ -357,8 +363,7 @@ class MinMaxSearch:
                 score += self.WEIGHTS[distance]
             return score
 
-        total_score = evaluate_distance_score(get_all_frogs(frog_color)) - \
-                      evaluate_distance_score(get_all_frogs(opponent_color))
+        total_score = evaluate_distance_score(get_all_frogs(frog_color)) - evaluate_distance_score(get_all_frogs(opponent_color)) * 0.3
 
         return total_score
 
