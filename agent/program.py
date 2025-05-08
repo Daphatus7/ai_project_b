@@ -17,13 +17,11 @@ Code from our project A - a* pathfinding
 # Project Part A: Single Player Freckers
 # Node class to represent each state in the A* search
 class Node:
-    def __init__(self, coord, parent):
+    def __init__(self, coord, g, h):
         self.coord = coord  # Coordinates of the node
-        self.parent = parent  # Parent node for backtracking
-        self.g = 0  # Set to be the path length
-        self.h = 0  # Heuristic cost to the end node
-        self.f = 0  # Total cost (g + h)
-        self.move = None  # Direction of the move
+        self.g = g  # Set to be the path length
+        self.h = h  # Heuristic cost to the end node
+        self.f = g + h  # Total cost (g + h)
 
     def __eq__(self, other):
         return self.coord == other.coord
@@ -31,26 +29,35 @@ class Node:
     def __lt__(self, other):
         return self.f < other.f
 
-def pathfinding( curr_board: dict[Coord, str], start: Coord, my_color: str) -> int:
+# Manhattan distance heuristic - minimum distance to any end position
+def h_cost(start: Coord, ends: list[Coord]) -> int:
+    if not ends:  # if no valid ends, return a large value
+        return BOARD_N * 2  # max possible distance on the board
+    return min(abs(start.r - end.r) + abs(start.c - end.c) for end in ends)
+
+def pathfinding( curr_board: dict[Coord, str], start: Coord, my_color: PlayerColor) -> int | None:
     """
     Simplified a* that only track the cost of the path
     """
     action_list = []
     closed = set()
 
-    goal_row = BOARD_N - 1 if my_color == 'r' else 0
-    goals = [Coord(goal_row, c) for c in range(BOARD_N)
-             if valid_landing_spot(curr_board, Coord(goal_row, c))]
-    if not goals:
-        return 0
+    goal_row = BOARD_N - 1 if my_color == PlayerColor.RED else 0
+    goals =[]
+    for column in range(BOARD_N):
+        if valid_landing_spot(curr_board, Coord(goal_row, column)):
+            goals.append(Coord(goal_row, column))
 
-    start_node = Node(start, None)
-    start_node.g = 0
-    start_node.h = h_cost(start, goals)
-    start_node.f = start_node.h
+    if not goals:
+        return None
+    elif start in goals:
+        return BOARD_N - 1 #maximum reward because it is already on the goal row
+
+    start_node = Node(start, 0, h_cost(start, goals))
+    min_g ={start: 0}
     heapq.heappush(action_list, start_node)
 
-    while len(action_list) > 0:
+    while action_list:
         current = heapq.heappop(action_list)
         closed.add(current.coord)
 
@@ -59,42 +66,29 @@ def pathfinding( curr_board: dict[Coord, str], start: Coord, my_color: str) -> i
             return current.g
 
         # all neighbours
-        for direction in get_possible_directions(current.coord):
-
-            # assemble the next node
+        for direction in get_possible_directions(my_color):
             r_vector = current.coord.r + direction.r
             c_vector = current.coord.c + direction.c
-
-            #safe check
             if not is_on_board(r_vector, c_vector):
                 continue
-            next_coord = Coord(r_vector, c_vector)
-
-            # if explored
-            if next_coord in closed:
+            new_coord = Coord(r_vector, c_vector)
+            if new_coord in closed:
                 continue
-
-            #check jumps
-            if can_jump(curr_board, next_coord, direction):
-                land = next_coord + direction
-                new_node = Node(land, current)
-                new_node.g = current.g
-            elif valid_landing_spot(curr_board, next_coord):
-                new_node = Node(next_coord, current)
-                new_node.g = current.g + 1
+            if can_jump(curr_board, new_coord, direction):
+                land = new_coord + direction
+                new_g = current.g + 1
+                coord2 = land
+            elif valid_landing_spot(curr_board, new_coord):
+                new_g = current.g + 1
+                coord2 = new_coord
             else:
                 continue
-            # accumulate cost
-            new_node.h = h_cost(new_node.coord, goals)
-            new_node.f = new_node.g + new_node.h
-            heapq.heappush(action_list, new_node)
-    return 0
+            if coord2 in min_g and new_g >= min_g[coord2]:
+                continue
+            min_g[coord2] = new_g
+            heapq.heappush(action_list, Node(coord2, new_g, h_cost(coord2, goals)))
+    return None
 
-# Manhattan distance heuristic - minimum distance to any end position
-def h_cost(start: Coord, ends: list[Coord]) -> int:
-    if not ends:  # if no valid ends, return a large value
-        return BOARD_N * 2  # max possible distance on the board
-    return min(abs(start.r - end.r) + abs(start.c - end.c) for end in ends)
 
 # Check if the coordinates are within the board boundaries
 def is_on_board(r, c):
@@ -206,7 +200,7 @@ class Agent:
             self._board[Coord(BOARD_N - 1, c)] = 'b'
 
         # Set minimax search depth
-        self._search_depth = 4 # error when search depth is 1
+        self._search_depth = 3 # error when search depth is 1
         self.__brain = MinMaxSearch(self._board, self._search_depth, self.__color)
 
         #self.__print_board()
@@ -441,7 +435,7 @@ class MinMaxSearch:
         return grow_tiles
 
 
-    WEIGHTS = [1, 2, 4, 8, 16, 32, 64, 128, 256]
+    WEIGHTS = [1, 2, 4, 8, 16, 32, 64, 128, 258]
 
 
     def evaluation_function(self, curr_board: dict[Coord, str], my_color: PlayerColor) -> float:
@@ -456,11 +450,6 @@ class MinMaxSearch:
         elif my_color == PlayerColor.BLUE:
             frog_color = 'b'
             opponent_color = 'r'
-        else:
-            assert False
-
-        goal_row = 0 if my_color == PlayerColor.RED else BOARD_N - 1
-
 
         def get_all_frogs(color: str) -> list[Coord]:
             frogs = []
@@ -473,26 +462,39 @@ class MinMaxSearch:
         #frog distance to an available destination
         #the shorter the distance, the higher the score
 
-        def evaluate_distance_score(frogs: list[Coord], color: str) -> float:
+        def evaluate_distance_score(frogs: list[Coord], pawn_color: PlayerColor) -> float:
             score = 0
+            goal = BOARD_N - 1 if pawn_color == PlayerColor.RED else 0
             for frog in frogs:
-                if frog.r != goal_row:
-                    length = pathfinding(curr_board, frog, color)
-                    if length:
-                        print("length", length)
-                        if length > BOARD_N * 2:
-                            score += self.WEIGHTS[0]
-                        else:
-                            score += self.WEIGHTS[length]
-                    else:
+                goal_distance = abs(goal - frog.r)
+                if frog.r != goal:
+                    if goal_distance < -1:
+                        length = pathfinding(curr_board, frog, pawn_color)
+                        #print("length", length)
+                        if length:
+                            if length > BOARD_N:
+                                score += self.WEIGHTS[0] # maximum penalty
+                            else:
+                                #print("length", length)
+                                score += self.WEIGHTS[length]
                         #original path
-                        score += self.WEIGHTS[abs(frog.r - goal_row)]
-                score += self.WEIGHTS[goal_row]
+                        if pawn_color == PlayerColor.RED:
+                            score += self.WEIGHTS[frog.r]
+                        else :
+                            score += self.WEIGHTS[len(self.WEIGHTS) - frog.r]
+                    else: # the frog is outside of close range
+                        score += self.WEIGHTS[len(self.WEIGHTS) - goal_distance]
+                else:
+                    if pawn_color == PlayerColor.RED:
+                        score += self.WEIGHTS[goal_distance]
+                    else:
+                        score += self.WEIGHTS[len(self.WEIGHTS) - goal_distance]
+            print("color ", pawn_color, "score ", score)
             return score
 
-        total_score = (evaluate_distance_score(get_all_frogs(frog_color),frog_color) -
-                       evaluate_distance_score(get_all_frogs(opponent_color),opponent_color))
-
+        total_score = (evaluate_distance_score(get_all_frogs(frog_color), my_color) -
+                       evaluate_distance_score(get_all_frogs(opponent_color), opposite_color(my_color)))
+        print("total score", total_score)
         return total_score
 
     def get_all_possible_jumps(self, start_coord: Coord, initial_board: dict[Coord, str], color: PlayerColor) -> list[
@@ -561,7 +563,7 @@ class MinMaxSearch:
         grow_value = self.min_max_value(self.apply_action(curr_board.copy(), GrowAction(), color), color, depth,
                                         alpha, beta,
                                         not maximizing_player)
-        value = max(value, grow_value) if maximizing_player else min(value, grow_value)
+
         for frog in get_frog_coords(curr_board, color):
             # for each possible direction
             for direction in get_possible_directions(color):  # possible moves should also include jumps
@@ -632,32 +634,32 @@ class MinMaxSearch:
 
 
         #1) instant win, simple steps and jumps
-        for frog in get_frog_coords(self.board, my_color):
-            for direction in get_possible_directions(my_color):
-                # compute candidate step
-                new_r = frog.r + direction.r
-                new_c = frog.c + direction.c
-
-                if not self.is_on_board(new_c, new_r):
-                    continue
-                # straight move to the goal row
-                if is_valid_move(self.board, Coord(new_r, new_c)):
-                    if new_r == goal_row:
-                        return MoveAction(frog, direction)
-
-                # check jump possibility
-                jump_start = Coord(new_r, new_c)
-
-                if self.can_jump(self.board, jump_start, direction):
-                    for jump in self.get_all_possible_jumps(frog, self.board, my_color):
-                        landing_r, landing_c = jump.coord.r, jump.coord.c
-                        for d in jump.directions:
-                            landing_r += d.r
-                            landing_c += d.c
-                            if not self.is_on_board(landing_c, landing_r):
-                                continue
-                            if landing_r == goal_row:
-                                return jump
+        # for frog in get_frog_coords(self.board, my_color):
+        #     for direction in get_possible_directions(my_color):
+        #         # compute candidate step
+        #         new_r = frog.r + direction.r
+        #         new_c = frog.c + direction.c
+        #
+        #         if not self.is_on_board(new_c, new_r):
+        #             continue
+        #         # straight move to the goal row
+        #         if is_valid_move(self.board, Coord(new_r, new_c)):
+        #             if new_r == goal_row:
+        #                 return MoveAction(frog, direction)
+        #
+        #         # check jump possibility
+        #         jump_start = Coord(new_r, new_c)
+        #
+        #         if self.can_jump(self.board, jump_start, direction):
+        #             for jump in self.get_all_possible_jumps(frog, self.board, my_color):
+        #                 landing_r, landing_c = jump.coord.r, jump.coord.c
+        #                 for d in jump.directions:
+        #                     landing_r += d.r
+        #                     landing_c += d.c
+        #                     if not self.is_on_board(landing_c, landing_r):
+        #                         continue
+        #                     if landing_r == goal_row:
+        #                         return jump
 
         # min value
         max_value = float('-inf')
