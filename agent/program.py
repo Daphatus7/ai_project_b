@@ -3,7 +3,10 @@
 from referee.game import PlayerColor, Coord, Direction, \
     Action, MoveAction, GrowAction
 from referee.game.board import CellState, BOARD_N
+from referee.game import Action, Coord, PlayerColor, Direction, MoveAction, GrowAction
 import heapq
+
+from typing import List
 
 
 """
@@ -39,7 +42,7 @@ def pathfinding( curr_board: dict[Coord, str], start: Coord, my_color: str) -> i
     goals = [Coord(goal_row, c) for c in range(BOARD_N)
              if valid_landing_spot(curr_board, Coord(goal_row, c))]
     if not goals:
-        return None                 # no legal destination
+        return None
 
     start_node = Node(start, None)
     start_node.g = 0
@@ -215,7 +218,6 @@ class Agent:
         print("  " + " ".join(str(c) for c in range(BOARD_N)))
         print("  " + "-" * (BOARD_N * 2 - 1))
 
-
         for r in range(BOARD_N):
             row = f"{r}|"
             for c in range(BOARD_N):
@@ -252,18 +254,14 @@ class Agent:
         This method is called by the referee after a player has taken their
         turn. You should use it to update the agent's internal game state.
         """
-        print("referee update actions",  action)
-        print("----------Before-------------")
-        self.__print_board()
+        #print("referee update actions",  action)
+        #print("----------Before-------------")
+        #self.__print_board()
         self.__brain.update_board(action, color)
         #printout board
-        print("----------After-------------")
-        self.__print_board()
+        #print("----------After-------------")
+        #self.__print_board()
 
-
-from typing import List
-
-from referee.game import Action, Coord, PlayerColor, Direction, MoveAction, GrowAction, board, BOARD_N
 
 
 def opposite_color(color: PlayerColor) -> PlayerColor | None:
@@ -443,7 +441,7 @@ class MinMaxSearch:
         return grow_tiles
 
 
-    WEIGHTS = [1, 2, 4, 8, 16, 32, 64, 128, 64]
+    WEIGHTS = [1, 2, 4, 8, 16, 32, 64, 128, 256]
 
 
     def evaluation_function(self, curr_board: dict[Coord, str], my_color: PlayerColor) -> float:
@@ -480,8 +478,9 @@ class MinMaxSearch:
             for frog in frogs:
 
                 length = pathfinding(curr_board, frog, color)
-                if length is not None:
-                    if length >= BOARD_N * 2:
+                if length:
+                    print("length", length)
+                    if length > BOARD_N * 2:
                         score += self.WEIGHTS[0]
                     else:
                         score += self.WEIGHTS[length]
