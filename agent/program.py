@@ -17,11 +17,10 @@ class Node:
     def __init__(self, coord, parent):
         self.coord = coord  # Coordinates of the node
         self.parent = parent  # Parent node for backtracking
-        self.g = 0  # Cost from start to this node
+        self.g = 0  # Set to be the path length
         self.h = 0  # Heuristic cost to the end node
         self.f = 0  # Total cost (g + h)
         self.move = None  # Direction of the move
-        self.is_jump = False  # Flag to indicate if this node is a jump start
 
     def __eq__(self, other):
         return self.coord == other.coord
@@ -29,100 +28,70 @@ class Node:
     def __lt__(self, other):
         return self.f < other.f
 
+def pathfinding( curr_board: dict[Coord, str], start: Coord, my_color: str) -> int | None:
+    """
+    Simplified a* that only track the cost of the path
+    """
+    action_list = []
+    closed = set()
 
-def pathfinding(
-        curr_board: dict[Coord, str],
-        start: Coord,
-        my_color: str,
-) -> list[MoveAction] | None:
-    action_list = []  # List of actions sorted by f value
-    closed_list = set()  # Set of explored nodes
+    goal_row = BOARD_N - 1 if my_color == 'r' else 0
+    goals = [Coord(goal_row, c) for c in range(BOARD_N)
+             if valid_landing_spot(curr_board, Coord(goal_row, c))]
+    if not goals:
+        return None                 # no legal destination
 
-    #goal row
-    ends = []
-    goal_row = BOARD_N - 1 if my_color == 'r' else 0  #define goals
-    for i in range(BOARD_N):
-        candidate = Coord(goal_row, i)
-        if valid_landing_spot(curr_board, candidate):
-            ends.append(candidate)
-    #
-    if not ends:
-        return None
-
-    # Begin search from the starting position
     start_node = Node(start, None)
+    start_node.g = 0
+    start_node.h = h_cost(start, goals)
+    start_node.f = start_node.h
     heapq.heappush(action_list, start_node)
 
-    # Continue exploring until open list is empty
     while len(action_list) > 0:
-        # Explore the node with the lowest f value
-        current = heapq.heappop(action_list)  # Get the node with smallest f value
-        curr_board = curr_board.copy()
-        curr_board[current.coord] = my_color
+        current = heapq.heappop(action_list)
+        closed.add(current.coord)
 
-        # Mark the current node as explored
-        closed_list.add(current.coord)
+        # g is set to be the path legnth
+        if current.coord in goals:
+            return current.g
 
-        # Check if current is the end
-        if current.coord in ends:
-            # Debug path found
-            # print("Found path" + str(current.coord))
-            return retrace_path(current)
+        # all neighbours
+        for direction in get_possible_directions(current.coord):
 
-        # All possible directions
-        for direction in red_directions():
+            # assemble the next node
             r_vector = current.coord.r + direction.r
             c_vector = current.coord.c + direction.c
 
-            if is_on_board(r_vector, c_vector):
-                next_coord = Coord(r_vector, c_vector)
+            #safe check
+            if not is_on_board(r_vector, c_vector):
+                continue
+            next_coord = Coord(r_vector, c_vector)
 
-                if next_coord not in closed_list:  # Is not explored
-                    # Debug node checking
-                    # print("Checking node " + str(next_coord))
+            # if explored
+            if next_coord in closed:
+                continue
 
-                    if can_jump(curr_board, next_coord, direction):  # If it can jump
-                        # Debug jump
-                        # print("Can jump " + str(next_coord))
-                        new_node = Node(next_coord + direction, current)
-                        new_node.g = current.g
-                        new_node.h = h_cost(new_node.coord, ends)
-                        new_node.f = new_node.g + new_node.h
-                        new_node.is_jump = True
-                        new_node.move = direction
-                        add_new_node(action_list, new_node)
+            #check jumps
+            if can_jump(curr_board, next_coord, direction):
+                land = next_coord + direction
+                new_node = Node(land, current)
+                new_node.g = current.g
+            elif valid_landing_spot(curr_board, next_coord):
+                new_node = Node(next_coord, current)
+                new_node.g = current.g + 1
+            else:
+                continue
+            # accumulate cost
+            new_node.h = h_cost(new_node.coord, goals)
+            new_node.f = new_node.g + new_node.h
+            heapq.heappush(action_list, new_node)
+    return None
 
-                    # If it cannot jump check if is a valid landing spot
-                    elif valid_landing_spot(curr_board, next_coord):
-                        # Debug landing
-                        # print("Can land" + str(next_coord))
-                        new_node = Node(next_coord, current)
-                        new_node.g = current.g + 1
-                        new_node.h = h_cost(new_node.coord, ends)
-                        new_node.f = new_node.g + new_node.h
-                        new_node.move = direction
-                        add_new_node(action_list, new_node)
-
-                    else:
-                        # Debug invalid spot
-                        # print("Not valid landing spot" + str(next_coord))
-                        continue
-
-
-# Valid movement directions for Red frog
-def red_directions():
-    return [
-        Direction.Down,
-        Direction.DownLeft,
-        Direction.DownRight,
-        Direction.Left,
-        Direction.Right
-    ]
-
-
-def add_new_node(action_list, new_node):
-    heapq.heappush(action_list, new_node)
-
+# Manhattan distance heuristic - minimum distance to any end position
+def h_cost(start: Coord, ends: list[Coord]) -> int:
+    if not ends:  # if no valid ends, return a large value
+        return BOARD_N * 2  # max possible distance on the board
+    return min(abs(start.r - end.r) + abs(start.c - end.c) for end in ends)
 
 # Check if the coordinates are within the board boundaries
 def is_on_board(r, c):
@@ -154,14 +123,6 @@ def can_jump(curr_board: dict[Coord, str], neighbour_node: Coord, direction: Dir
     # Landing position must be a lily pad and not occupied by another frog
     return landing_node in curr_board and curr_board[landing_node] == 'l'
 
-
-# Manhattan distance heuristic - minimum distance to any end position
-def h_cost(start: Coord, ends: list[Coord]) -> int:
-    if not ends:  # if no valid ends, return a large value
-        return BOARD_N * 2  # max possible distance on the board
-    return min(abs(start.r - end.r) + abs(start.c - end.c) for end in ends)
-
-
 # Check if position is a valid landing spot
 def valid_landing_spot(board, coord):
     if coord not in board:
@@ -170,36 +131,6 @@ def valid_landing_spot(board, coord):
             board[coord] != 'r' and
             board[coord] != 'b')
 
-
-# Reconstruct path from end node to start, handling both jumps and single moves
-def retrace_path(end_node):
-    path = []
-    current = end_node  # Start from the goal node
-
-    while current:
-        # Case 1: Handle jump sequences (multiple connected jumps)
-        if current.is_jump:
-            jump_moves = []
-
-            # Collect all consecutive jumps in reverse order
-            while current and current.is_jump:
-                jump_moves.append(current.move)
-                current = current.parent
-
-            if jump_moves:
-                # Reverse to get correct order and package as one MoveAction
-                jump_moves.reverse()
-                start_coord = current.coord if current else jump_moves[0]
-                path.append(MoveAction(start_coord, jump_moves))
-                continue  # Skip the regular move handling below
-
-        # Case 2: Handle regular single moves
-        if current.parent and current.move:
-            path.append(MoveAction(current.parent.coord, [current.move]))
-
-        current = current.parent
-
-    return path[::-1]  # Return in start-to-goal order
 
 
 
@@ -548,11 +479,14 @@ class MinMaxSearch:
         def evaluate_distance_score(frogs: list[Coord], color: str) -> float:
             score = 0
             for frog in frogs:
-                path = pathfinding(curr_board, frog, color)
-                if path:
-                    length = len(path)
-                    score += self.WEIGHTS[length - 1]
 
+
+                length = pathfinding(curr_board, frog, color)
+                if length is not None:
+                    if length >= BOARD_N * 2:
+                        score += self.WEIGHTS[0]
+                    else:
+                        score += self.WEIGHTS[length]
                 else:
                     #original path
                     score += self.WEIGHTS[abs(frog.r - goal_row)]
@@ -776,7 +710,7 @@ class MinMaxSearch:
                 jump_start = Coord(move_r, move_c)
                 if self.can_jump(self.board, jump_start, direction):
                     # need to check every possible jumps
-                    for jump in self.get_all_possible_jumps(jump_start, self.board, my_color):
+                    for jump in self.get_all_possible_jumps(frog_location, self.board, my_color):
                         value = self.min_max_value(self.apply_action(self.board.copy(), jump, my_color),
                                                    opposite_color(my_color),
                                                    explore_depth,
