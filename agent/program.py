@@ -3,6 +3,7 @@
 from referee.game import PlayerColor, Coord, Direction, \
     Action, MoveAction, GrowAction
 from referee.game.board import CellState, BOARD_N
+import heapq
 
 
 """
@@ -11,15 +12,42 @@ Code from our project A - a* pathfinding
 
 # COMP30024 Artificial Intelligence, Semester 1 2025
 # Project Part A: Single Player Freckers
+# Node class to represent each state in the A* search
+class Node:
+    def __init__(self, coord, parent):
+        self.coord = coord  # Coordinates of the node
+        self.parent = parent  # Parent node for backtracking
+        self.g = 0  # Cost from start to this node
+        self.h = 0  # Heuristic cost to the end node
+        self.f = 0  # Total cost (g + h)
+        self.move = None  # Direction of the move
+        self.is_jump = False  # Flag to indicate if this node is a jump start
 
-import heapq
+    def __eq__(self, other):
+        return self.coord == other.coord
+
+    def __lt__(self, other):
+        return self.f < other.f
+
+
 def pathfinding(
         curr_board: dict[Coord, str],
         start: Coord,
-        ends: list[Coord]
+        my_color: str,
 ) -> list[MoveAction] | None:
     action_list = []  # List of actions sorted by f value
     closed_list = set()  # Set of explored nodes
+
+    #goal row
+    ends = []
+    goal_row = BOARD_N - 1 if my_color == 'r' else 0  #define goals
+    for i in range(BOARD_N):
+        candidate = Coord(goal_row, i)
+        if valid_landing_spot(curr_board, candidate):
+            ends.append(candidate)
+    #
+    if not ends:
+        return None
 
     # Begin search from the starting position
     start_node = Node(start, None)
@@ -30,7 +58,7 @@ def pathfinding(
         # Explore the node with the lowest f value
         current = heapq.heappop(action_list)  # Get the node with smallest f value
         curr_board = curr_board.copy()
-        curr_board.pop(current.coord)
+        curr_board[current.coord] = my_color
 
         # Mark the current node as explored
         closed_list.add(current.coord)
@@ -102,12 +130,35 @@ def is_on_board(r, c):
 
 
 # Check if red frog can jump over a blue frog in a given direction
-# def can_jump(curr_board, new_coord, direction):
+def can_jump(curr_board: dict[Coord, str], neighbour_node: Coord, direction: Direction) -> bool:
+    """
+    Check if the frog can jump
+    1. the neighbour_node must be in the board
+    2. the neighbour_node must be a frog
+    3. there must be a valid landing spot
+    """
+    if neighbour_node not in curr_board:
+        return False
 
+    neighbour = curr_board[neighbour_node]
+    if neighbour not in ['r', 'b']:  # is a frog
+        return False
+
+    # check the direction
+    landing_c = neighbour_node.c + direction.c
+    landing_r = neighbour_node.r + direction.r
+
+    if not is_on_board(landing_c, landing_r):
+        return False
+    landing_node = Coord(landing_r, landing_c)
+    # Landing position must be a lily pad and not occupied by another frog
+    return landing_node in curr_board and curr_board[landing_node] == 'l'
 
 
 # Manhattan distance heuristic - minimum distance to any end position
 def h_cost(start: Coord, ends: list[Coord]) -> int:
+    if not ends:  # if no valid ends, return a large value
+        return BOARD_N * 2  # max possible distance on the board
     return min(abs(start.r - end.r) + abs(start.c - end.c) for end in ends)
 
 
@@ -115,9 +166,9 @@ def h_cost(start: Coord, ends: list[Coord]) -> int:
 def valid_landing_spot(board, coord):
     if coord not in board:
         return False
-    return (board[coord] == CellState.LILY_PAD and
-            board[coord] != CellState.RED and
-            board[coord] != CellState.BLUE)
+    return (board[coord] == 'l' and
+            board[coord] != 'r' and
+            board[coord] != 'b')
 
 
 # Reconstruct path from end node to start, handling both jumps and single moves
@@ -151,22 +202,7 @@ def retrace_path(end_node):
     return path[::-1]  # Return in start-to-goal order
 
 
-# Node class to represent each state in the A* search
-class Node:
-    def __init__(self, coord, parent):
-        self.coord = coord  # Coordinates of the node
-        self.parent = parent  # Parent node for backtracking
-        self.g = 0  # Cost from start to this node
-        self.h = 0  # Heuristic cost to the end node
-        self.f = 0  # Total cost (g + h)
-        self.move = None  # Direction of the move
-        self.is_jump = False  # Flag to indicate if this node is a jump start
 
-    def __eq__(self, other):
-        return self.coord == other.coord
-
-    def __lt__(self, other):
-        return self.f < other.f
 
 # A* search algorithm
 
@@ -237,7 +273,7 @@ class Agent:
             self._board[Coord(BOARD_N - 1, c)] = 'b'
 
         # Set minimax search depth
-        self._search_depth = 5 # error when search depth is 1
+        self._search_depth = 3 # error when search depth is 1
         self.__brain = MinMaxSearch(self._board, self._search_depth, self.__color)
 
         #self.__print_board()
@@ -293,20 +329,6 @@ class Agent:
         #printout board
         print("----------After-------------")
         self.__print_board()
-        # # There are two possible action types: MOVE and GROW. Below we check
-        # # which type of action was played and print out the details of the
-        # # action for demonstration purposes. You should replace this with your
-        # # own logic to update your agent's internal game state representation.
-        # match action:
-        #     case MoveAction(coord, dirs):
-        #         dirs_text = ", ".join([str(dir) for dir in dirs])
-        #         print(f"Testing: {color} played MOVE action:")
-        #         print(f"  Coord: {coord}")
-        #         print(f"  Directions: {dirs_text}")
-        #     case GrowAction():
-        #         print(f"Testing: {color} played GROW action")
-        #     case _:
-        #         raise ValueError(f"Unknown action type: {action}")
 
 
 from typing import List
@@ -523,17 +545,21 @@ class MinMaxSearch:
         #frog distance to an available destination
         #the shorter the distance, the higher the score
 
-        def evaluate_distance_score(frogs: list[Coord]) -> float:
+        def evaluate_distance_score(frogs: list[Coord], color: str) -> float:
             score = 0
             for frog in frogs:
-                distance = abs(goal_row - frog.r)
+                path = pathfinding(curr_board, frog, color)
+                if path:
+                    length = len(path)
+                    score += self.WEIGHTS[length - 1]
 
-                path = pathfinding(curr_board, frog, distance)
-                print(path)
-                score += self.WEIGHTS[distance]
+                else:
+                    #original path
+                    score += self.WEIGHTS[abs(frog.r - goal_row)]
             return score
 
-        total_score = evaluate_distance_score(get_all_frogs(frog_color)) - evaluate_distance_score(get_all_frogs(opponent_color))
+        total_score = (evaluate_distance_score(get_all_frogs(frog_color),frog_color) -
+                       evaluate_distance_score(get_all_frogs(opponent_color),opponent_color))
 
         return total_score
 
@@ -589,26 +615,11 @@ class MinMaxSearch:
 
     def can_jump(self, cur_board: dict[Coord, str], neighbour_node, direction) -> bool:
         """
-        Check if the frog can jumpc z
+        Check if the frog can jump
         1. the neighbour_node node must be in the board
         2. the neighbour_node must be a frog
         """
-        if neighbour_node not in cur_board:  #
-            return False
-
-        neighbour = cur_board[neighbour_node]
-        if neighbour not in ['r', 'b']:  # is a frog
-            return False
-        # check the direction
-        direction_coord = self.convert_direction_to_coord(direction)
-        landing_c = neighbour_node.c + direction_coord[1]
-        landing_r = neighbour_node.r + direction_coord[0]
-
-        if not self.is_on_board(landing_c, landing_r):
-            return False
-        landing_node = Coord(landing_r, landing_c)
-        # Landing position must be a lily pad and not occupied by another frog
-        return landing_node in cur_board and cur_board[landing_node] == 'l'
+        return can_jump(cur_board, neighbour_node, direction)
 
     def evaluate_min_max(self, curr_board: dict[Coord, str], color: PlayerColor, depth: int,
                          alpha, beta,
@@ -689,32 +700,32 @@ class MinMaxSearch:
 
 
         # 1) instant win, simple steps and jumps
-        for frog in get_frog_coords(self.board, my_color):
-            for direction in get_possible_directions(my_color):
-                # compute candidate step
-                new_r = frog.r + direction.r
-                new_c = frog.c + direction.c
-
-                if not self.is_on_board(new_c, new_r):
-                    continue
-                # straight move to the goal row
-                if is_valid_move(self.board, Coord(new_r, new_c)):
-                    if new_r == goal_row:
-                        return MoveAction(frog, direction)
-
-                # check jump possibility
-                jump_start = Coord(new_r, new_c)
-
-                if self.can_jump(self.board, jump_start, direction):
-                    for jump in self.get_all_possible_jumps(frog, self.board, my_color):
-                        landing_r, landing_c = jump.coord.r, jump.coord.c
-                        for d in jump.directions:
-                            landing_r += d.r
-                            landing_c += d.c
-                            if not self.is_on_board(landing_c, landing_r):
-                                continue
-                            if landing_r == goal_row:
-                                return jump
+        # for frog in get_frog_coords(self.board, my_color):
+        #     for direction in get_possible_directions(my_color):
+        #         # compute candidate step
+        #         new_r = frog.r + direction.r
+        #         new_c = frog.c + direction.c
+        #
+        #         if not self.is_on_board(new_c, new_r):
+        #             continue
+        #         # straight move to the goal row
+        #         if is_valid_move(self.board, Coord(new_r, new_c)):
+        #             if new_r == goal_row:
+        #                 return MoveAction(frog, direction)
+        #
+        #         # check jump possibility
+        #         jump_start = Coord(new_r, new_c)
+        #
+        #         if self.can_jump(self.board, jump_start, direction):
+        #             for jump in self.get_all_possible_jumps(frog, self.board, my_color):
+        #                 landing_r, landing_c = jump.coord.r, jump.coord.c
+        #                 for d in jump.directions:
+        #                     landing_r += d.r
+        #                     landing_c += d.c
+        #                     if not self.is_on_board(landing_c, landing_r):
+        #                         continue
+        #                     if landing_r == goal_row:
+        #                         return jump
 
         # min value
         max_value = float('-inf')
