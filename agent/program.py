@@ -175,7 +175,6 @@ def get_frog_coords(curr_board: dict[Coord, str], color: PlayerColor) -> list[Co
     for coord, state in curr_board.items():
         if state == player_color:
             frogs.append(coord)
-    print(f"frogs: {frogs}")
     return frogs
 
 
@@ -519,10 +518,8 @@ class MinMaxSearch:
 
         # 1) instant win, simple steps and jumps
         for frog in get_frog_coords(self.board, my_color):
-            print("getting all the frogs", frog)
             for direction in get_possible_directions(my_color):
                 # compute candidate step
-                print("frog going to ", direction)
                 new_r = frog.r + direction.r
                 new_c = frog.c + direction.c
 
