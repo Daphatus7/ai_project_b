@@ -175,6 +175,7 @@ def get_frog_coords(curr_board: dict[Coord, str], color: PlayerColor) -> list[Co
     for coord, state in curr_board.items():
         if state == player_color:
             frogs.append(coord)
+    print(f"frogs: {frogs}")
     return frogs
 
 
@@ -291,6 +292,7 @@ class MinMaxSearch:
                 if self.is_on_board(new_c, new_r):
                     current_pos = Coord(new_r, new_c)
                     if current_pos in new_board and new_board[current_pos] in ['r', 'b']:
+
                         current_pos = current_pos + direction
             # destination
             new_board[current_pos] = frog_color
@@ -514,10 +516,13 @@ class MinMaxSearch:
         """
         goal_row = 0 if my_color == PlayerColor.BLUE else BOARD_N - 1
 
+
         # 1) instant win, simple steps and jumps
         for frog in get_frog_coords(self.board, my_color):
+            print("getting all the frogs", frog)
             for direction in get_possible_directions(my_color):
                 # compute candidate step
+                print("frog going to ", direction)
                 new_r = frog.r + direction.r
                 new_c = frog.c + direction.c
 
@@ -532,13 +537,15 @@ class MinMaxSearch:
                 jump_start = Coord(new_r, new_c)
 
                 if self.can_jump(self.board, jump_start, direction):
-                    for jump in self.get_all_possible_jumps(jump_start, self.board, my_color):
+                    for jump in self.get_all_possible_jumps(frog, self.board, my_color):
                         landing_r, landing_c = jump.coord.r, jump.coord.c
                         for d in jump.directions:
                             landing_r += d.r
                             landing_c += d.c
-                        if landing_r == goal_row:
-                            return jump
+                            if not self.is_on_board(landing_c, landing_r):
+                                continue
+                            if landing_r == goal_row:
+                                return jump
 
         # min value
         max_value = float('-inf')
