@@ -43,7 +43,7 @@ def pathfinding( curr_board: dict[Coord, str], start: Coord, my_color: PlayerCol
     closed = set()
 
     goal_row = BOARD_N - 1 if my_color == PlayerColor.RED else 0
-    goals =[]
+    goals =[] # all possible goal positions
     for column in range(BOARD_N):
         if valid_landing_spot(curr_board, Coord(goal_row, column)):
             goals.append(Coord(goal_row, column))
@@ -435,7 +435,8 @@ class MinMaxSearch:
         return grow_tiles
 
 
-    WEIGHTS = [1, 2, 4, 8, 16, 32, 64, 128, 1000]
+    WEIGHTS = [1, 2, 4, 8, 16, 32, 64, 200, 850] # 62
+
 
     def evaluation_function(self, curr_board: dict[Coord, str], my_player_color: PlayerColor) -> float:
         """
@@ -639,36 +640,6 @@ class MinMaxSearch:
         2. we estimate the impact of next move
         3. then we conclude if the next move is the best
         """
-        #goal_row = 0 if my_color == PlayerColor.BLUE else BOARD_N - 1
-
-
-        #1) instant win, simple steps and jumps
-        # for frog in get_frog_coords(self.board, my_color):
-        #     for direction in get_possible_directions(my_color):
-        #         # compute candidate step
-        #         new_r = frog.r + direction.r
-        #         new_c = frog.c + direction.c
-        #
-        #         if not self.is_on_board(new_c, new_r):
-        #             continue
-        #         # straight move to the goal row
-        #         if is_valid_move(self.board, Coord(new_r, new_c)):
-        #             if new_r == goal_row:
-        #                 return MoveAction(frog, direction)
-        #
-        #         # check jump possibility
-        #         jump_start = Coord(new_r, new_c)
-        #
-        #         if self.can_jump(self.board, jump_start, direction):
-        #             for jump in self.get_all_possible_jumps(frog, self.board, my_color):
-        #                 landing_r, landing_c = jump.coord.r, jump.coord.c
-        #                 for d in jump.directions:
-        #                     landing_r += d.r
-        #                     landing_c += d.c
-        #                     if not self.is_on_board(landing_c, landing_r):
-        #                         continue
-        #                     if landing_r == goal_row:
-        #                         return jump
 
         # min value
         max_value = float('-inf')
