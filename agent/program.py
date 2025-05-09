@@ -1,18 +1,51 @@
 # COMP30024 Artificial Intelligence, Semester 1 2025
 # Project Part B: Game Playing Agent
-from referee.game import PlayerColor, Coord, Direction, \
-    Action, MoveAction, GrowAction
-from referee.game.board import CellState, BOARD_N
-from referee.game import Action, Coord, PlayerColor, Direction, MoveAction, GrowAction
+
 import heapq
-
 from typing import List
+from referee.game.board import CellState, BOARD_N
+from referee.game import PlayerColor, Coord, Direction, Action, MoveAction, GrowAction
+from referee.game import Action, Coord, PlayerColor, Direction, MoveAction, GrowAction
 
+class Cache:
+    """LRU cache for evaluation results"""
+    def __init__(self, max_size=10000):  # Adjust based on memory constraints
+        self.max_size = max_size
+        self.cache = {}
+        self.access_order = []
+    
+    def _make_key(self, board: dict[Coord, str], color: PlayerColor) -> tuple:
+        """Create an immutable key from the board state"""
+        return (
+            frozenset((c.r, c.c, p) for c, p in board.items() if p in ['r', 'b', 'l']),
+            color
+        )
+    
+    def get(self, board: dict[Coord, str], color: PlayerColor) -> float | None:
+        """Get cached evaluation if exists"""
+        key = self._make_key(board, color)
+        if key in self.cache:
+            # Update access order
+            self.access_order.remove(key)
+            self.access_order.append(key)
+            return self.cache[key]
+        return None
+    
+    def store(self, board: dict[Coord, str], color: PlayerColor, value: float):
+        """Store evaluation result"""
+        key = self._make_key(board, color)
+        
+        # Evict least recently used
+        if len(self.cache) >= self.max_size:
+            oldest_key = self.access_order.pop(0)
+            del self.cache[oldest_key]
+        
+        self.cache[key] = value
+        self.access_order.append(key)
 
 """
 Code from our project A - a* pathfinding
 """
-
 # COMP30024 Artificial Intelligence, Semester 1 2025
 # Project Part A: Single Player Freckers
 # Node class to represent each state in the A* search
@@ -89,7 +122,6 @@ def pathfinding( curr_board: dict[Coord, str], start: Coord, my_color: PlayerCol
             heapq.heappush(action_list, Node(coord2, new_g, h_cost(coord2, goals)))
     return None
 
-
 # Check if the coordinates are within the board boundaries
 def is_on_board(r, c):
     return 0 <= r < BOARD_N and 0 <= c < BOARD_N
@@ -127,13 +159,7 @@ def valid_landing_spot(board, coord):
             board[coord] != 'r' and
             board[coord] != 'b')
 
-
-
-
-
 # A* search algorithm
-
-
 class Agent:
     """
     This class is the "entry point" for your agent, providing an interface to
@@ -349,6 +375,7 @@ class MinMaxSearch:
         self.depth = depth
         self.color = color
         self.best_move = None
+        self.cache = Cache(max_size=10000)  # Initialize cache with a size limit
 
     def print_board(self, print_board: dict[Coord, str]):
         """
@@ -444,6 +471,10 @@ class MinMaxSearch:
         """
         Evaluate the board state. Higher values are better for the player.
         """
+        # Check if the board state is already cached
+        cached_value = self.cache.get(curr_board, my_player_color)
+        if cached_value is not None:
+            return cached_value
         frog_color = None
         opponent_color = None
         if my_player_color == PlayerColor.RED:
@@ -506,6 +537,8 @@ class MinMaxSearch:
         #opponent_lily_pad = evaluate_free_tiles(get_all_frogs(opponent_color), opposite_color(my_player_color))
         total_score = my_score - opponent_score
 
+        # store the evaluation result in the cache
+        self.cache.store(curr_board, my_player_color, total_score)
         return total_score
 
     def get_all_possible_jumps(self, start_coord: Coord, initial_board: dict[Coord, str], color: PlayerColor) -> list[
@@ -709,5 +742,3 @@ class MinMaxSearch:
                 break
         #print("best move", best_move)
         return best_move
-
-
