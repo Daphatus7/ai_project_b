@@ -200,7 +200,7 @@ class Agent:
             self._board[Coord(BOARD_N - 1, c)] = 'b'
 
         # Set minimax search depth
-        self._search_depth = 3 # error when search depth is 1
+        self._search_depth = 4 # error when search depth is 1
         self.__brain = MinMaxSearch(self._board, self._search_depth, self.__color)
 
         #self.__print_board()
@@ -464,14 +464,13 @@ class MinMaxSearch:
             for frog in frogs:
                 distance = abs(goal_row - frog.r)
                 frog_score = self.WEIGHTS[len(self.WEIGHTS) - distance - 1]
-                #print("distance = ", distance, "goal_row - ", goal_row, "frog.r ", frog, " frog_score = ", frog_score)
                 score += frog_score
             return score
 
         my_score = evaluate_distance_score(get_all_frogs(frog_color), my_player_color)
-        #opponent_score = evaluate_distance_score(get_all_frogs(opponent_color), opposite_color(my_color))
+        opponent_score = evaluate_distance_score(get_all_frogs(opponent_color), opposite_color(my_player_color))
         #print ("my versus opponent score", my_score)
-        total_score = my_score
+        total_score = my_score - opponent_score
 
         return total_score
 
