@@ -437,16 +437,16 @@ class MinMaxSearch:
 
     WEIGHTS = [1, 2, 4, 8, 16, 32, 64, 128, 258]
 
-    def evaluation_function(self, curr_board: dict[Coord, str], my_color: PlayerColor) -> float:
+    def evaluation_function(self, curr_board: dict[Coord, str], my_player_color: PlayerColor) -> float:
         """
         Evaluate the board state. Higher values are better for the player.
         """
         frog_color = None
         opponent_color = None
-        if my_color == PlayerColor.RED:
+        if my_player_color == PlayerColor.RED:
             frog_color = 'r'
             opponent_color = 'b'
-        elif my_color == PlayerColor.BLUE:
+        elif my_player_color == PlayerColor.BLUE:
             frog_color = 'b'
             opponent_color = 'r'
 
@@ -463,14 +463,14 @@ class MinMaxSearch:
             goal_row = BOARD_N - 1 if color == PlayerColor.RED else 0
             for frog in frogs:
                 distance = abs(goal_row - frog.r)
-                frog_score = self.WEIGHTS[len(self.WEIGHTS) - distance]
-                print("distance = ", distance, "goal_row - ", goal_row, "frog.r ", frog, " frog_score = ", frog_score)
+                frog_score = self.WEIGHTS[len(self.WEIGHTS) - distance - 1]
+                #print("distance = ", distance, "goal_row - ", goal_row, "frog.r ", frog, " frog_score = ", frog_score)
                 score += frog_score
             return score
 
-        my_score = evaluate_distance_score(get_all_frogs(frog_color), my_color)
+        my_score = evaluate_distance_score(get_all_frogs(frog_color), my_player_color)
         #opponent_score = evaluate_distance_score(get_all_frogs(opponent_color), opposite_color(my_color))
-        print ("my versus opponent score", my_score)
+        #print ("my versus opponent score", my_score)
         total_score = my_score
 
         return total_score
@@ -599,7 +599,7 @@ class MinMaxSearch:
                       maximizing_player: bool) -> float | List[Action] | Action:
         new_depth = depth - 1
         if terminal_test(curr_board, new_depth):
-            return self.evaluation_function(curr_board, color)
+            return self.evaluation_function(curr_board, self.color)
         return self.evaluate_min_max(curr_board, color, new_depth, alpha, beta, maximizing_player)
 
     def get_best_move(self, my_color: PlayerColor) -> Action:
