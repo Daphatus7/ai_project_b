@@ -200,7 +200,7 @@ class Agent:
             self._board[Coord(BOARD_N - 1, c)] = 'b'
 
         # Set minimax search depth
-        self._search_depth = 4 # error when search depth is 1
+        self._search_depth = 3 # error when search depth is 1
         self.__brain = MinMaxSearch(self._board, self._search_depth, self.__color)
 
         #self.__print_board()
@@ -450,7 +450,6 @@ class MinMaxSearch:
             frog_color = 'b'
             opponent_color = 'r'
 
-
         def get_all_frogs(color: str) -> list[Coord]:
             frogs = []
             for cell, state in list(curr_board.items()):
@@ -476,10 +475,33 @@ class MinMaxSearch:
                 score += frog_score
             return score
 
+        #evaluate the number of free tiles around the frog movement direction
+        def evaluate_free_tiles(frogs: list[Coord], color: PlayerColor)-> float:
+            lily_pad = set()
+            for frog in frogs:
+                # estimate the cost to a valid row column
+                for direction in get_possible_directions(color):
+                    new_r = frog.r + direction.r
+                    new_c = frog.c + direction.c
+                    if self.is_on_board(new_c, new_r):
+                        new_coord = Coord(new_r, new_c)
+                        if is_valid_move(curr_board, new_coord):
+                            lily_pad.add(new_coord)
+            #make the free space that is closer to the goal row more valuable
+            goal_row = BOARD_N - 1 if color == PlayerColor.RED else 0
+            lily_weight = 0
+            for frog in lily_pad:
+                distance = abs(goal_row - frog.r)
+                lily_weight += self.WEIGHTS[len(self.WEIGHTS) - distance - 1]
+            return lily_weight * 0.05
+
+
         my_score = evaluate_distance_score(get_all_frogs(frog_color), my_player_color)
         opponent_score = evaluate_distance_score(get_all_frogs(opponent_color), opposite_color(my_player_color))
         #print ("my versus opponent score", my_score)
-        total_score = my_score - opponent_score
+        my_lily_pad = evaluate_free_tiles(get_all_frogs(frog_color), my_player_color)
+        opponent_lily_pad = evaluate_free_tiles(get_all_frogs(opponent_color), opposite_color(my_player_color))
+        total_score = my_score - opponent_score - my_lily_pad + opponent_lily_pad
 
         return total_score
 
