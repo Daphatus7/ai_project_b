@@ -176,7 +176,7 @@ class Agent:
         # Store our color
         """
         self.__color = color
-        print(f"Agent color: {self.__color}")
+        #print(f"Agent color: {self.__color}")
 
         # Initialize with a dictionary-based board representation
         self._board : dict[Coord, chr] = {}
@@ -252,6 +252,8 @@ class Agent:
         #print("----------Before-------------")
         #self.__print_board()
         self.__brain.update_board(action, color)
+        # Print remaining referee time
+        print(f"Referee time remaining: {referee['time_remaining']} seconds")
         #printout board
         #print("----------After-------------")
         #self.__print_board()
@@ -705,7 +707,7 @@ class MinMaxSearch:
                             break
             if beta <= alpha:
                 break
-        print("best move", best_move)
+        #print("best move", best_move)
         return best_move
 
 
