@@ -435,7 +435,7 @@ class MinMaxSearch:
         return grow_tiles
 
 
-    WEIGHTS = [1, 2, 4, 8, 16, 32, 64, 128, 258]
+    WEIGHTS = [1, 2, 4, 8, 16, 32, 64, 128, 1000]
 
     def evaluation_function(self, curr_board: dict[Coord, str], my_player_color: PlayerColor) -> float:
         """
@@ -463,7 +463,7 @@ class MinMaxSearch:
             for frog in frogs:
                 # estimate the cost to a valid row column
                 distance = abs(goal_row - frog.r)
-                if distance <= 4: # use pathfinding to estimate a valid row column
+                if 4 >= distance >= 1: # use pathfinding to estimate a valid row column
                     a_star_distance = pathfinding(curr_board, frog, color)
                     if a_star_distance is not None:
                         frog_score = self.WEIGHTS[len(self.WEIGHTS) - a_star_distance - 1]
