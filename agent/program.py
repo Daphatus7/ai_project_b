@@ -322,7 +322,7 @@ def terminal_test(board: dict[Coord, str], depth) -> bool:
         return True
         # Check if all RED frogs are at row 7
     red_frogs = [coord for coord, state in board.items() if state == 'r']
-    if all(frog.r == 7 for frog in red_frogs) and red_frogs:
+    if all(frog.r == BOARD_N - 1 for frog in red_frogs) and red_frogs:
         return True
     # Check if all BLUE frogs are at row 0
     blue_frogs = [coord for coord, state in board.items() if state == 'b']
@@ -437,7 +437,6 @@ class MinMaxSearch:
 
     WEIGHTS = [1, 2, 4, 8, 16, 32, 64, 128, 258]
 
-
     def evaluation_function(self, curr_board: dict[Coord, str], my_color: PlayerColor) -> float:
         """
         Evaluate the board state. Higher values are better for the player.
@@ -451,6 +450,7 @@ class MinMaxSearch:
             frog_color = 'b'
             opponent_color = 'r'
 
+
         def get_all_frogs(color: str) -> list[Coord]:
             frogs = []
             for cell, state in list(curr_board.items()):
@@ -458,43 +458,21 @@ class MinMaxSearch:
                     frogs.append(cell)
             return frogs
 
-        #evaluate the position of frog on the board
-        #frog distance to an available destination
-        #the shorter the distance, the higher the score
-
-        def evaluate_distance_score(frogs: list[Coord], pawn_color: PlayerColor) -> float:
+        def evaluate_distance_score(frogs: list[Coord], color: PlayerColor)-> float:
             score = 0
-            goal = BOARD_N - 1 if pawn_color == PlayerColor.RED else 0
+            goal_row = BOARD_N - 1 if color == PlayerColor.RED else 0
             for frog in frogs:
-                goal_distance = abs(goal - frog.r)
-                if frog.r != goal:
-                    if goal_distance < -1:
-                        length = pathfinding(curr_board, frog, pawn_color)
-                        #print("length", length)
-                        if length:
-                            if length > BOARD_N:
-                                score += self.WEIGHTS[0] # maximum penalty
-                            else:
-                                #print("length", length)
-                                score += self.WEIGHTS[length]
-                        #original path
-                        if pawn_color == PlayerColor.RED:
-                            score += self.WEIGHTS[frog.r]
-                        else :
-                            score += self.WEIGHTS[len(self.WEIGHTS) - frog.r]
-                    else: # the frog is outside of close range
-                        score += self.WEIGHTS[len(self.WEIGHTS) - goal_distance]
-                else:
-                    if pawn_color == PlayerColor.RED:
-                        score += self.WEIGHTS[goal_distance]
-                    else:
-                        score += self.WEIGHTS[len(self.WEIGHTS) - goal_distance]
-            print("color ", pawn_color, "score ", score)
+                distance = abs(goal_row - frog.r)
+                frog_score = self.WEIGHTS[len(self.WEIGHTS) - distance]
+                print("distance = ", distance, "goal_row - ", goal_row, "frog.r ", frog, " frog_score = ", frog_score)
+                score += frog_score
             return score
 
-        total_score = (evaluate_distance_score(get_all_frogs(frog_color), my_color) -
-                       evaluate_distance_score(get_all_frogs(opponent_color), opposite_color(my_color)))
-        print("total score", total_score)
+        my_score = evaluate_distance_score(get_all_frogs(frog_color), my_color)
+        #opponent_score = evaluate_distance_score(get_all_frogs(opponent_color), opposite_color(my_color))
+        print ("my versus opponent score", my_score)
+        total_score = my_score
+
         return total_score
 
     def get_all_possible_jumps(self, start_coord: Coord, initial_board: dict[Coord, str], color: PlayerColor) -> list[
@@ -564,6 +542,7 @@ class MinMaxSearch:
                                         alpha, beta,
                                         not maximizing_player)
         value = max(value, grow_value) if maximizing_player else min(value, grow_value)
+
         for frog in get_frog_coords(curr_board, color):
             # for each possible direction
             for direction in get_possible_directions(color):  # possible moves should also include jumps
@@ -630,7 +609,7 @@ class MinMaxSearch:
         2. we estimate the impact of next move
         3. then we conclude if the next move is the best
         """
-        goal_row = 0 if my_color == PlayerColor.BLUE else BOARD_N - 1
+        #goal_row = 0 if my_color == PlayerColor.BLUE else BOARD_N - 1
 
 
         #1) instant win, simple steps and jumps
