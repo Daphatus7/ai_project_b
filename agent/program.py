@@ -464,7 +464,7 @@ class MinMaxSearch:
             for frog in frogs:
                 # estimate the cost to a valid row column
                 distance = abs(goal_row - frog.r)
-                if distance < 3: # use pathfinding to estimate a valid row column
+                if distance <= 4: # use pathfinding to estimate a valid row column
                     a_star_distance = pathfinding(curr_board, frog, color)
                     if a_star_distance is not None:
                         frog_score = self.WEIGHTS[len(self.WEIGHTS) - a_star_distance - 1]
