@@ -462,8 +462,17 @@ class MinMaxSearch:
             score = 0
             goal_row = BOARD_N - 1 if color == PlayerColor.RED else 0
             for frog in frogs:
+                # estimate the cost to a valid row column
                 distance = abs(goal_row - frog.r)
-                frog_score = self.WEIGHTS[len(self.WEIGHTS) - distance - 1]
+                if distance < 3: # use pathfinding to estimate a valid row column
+                    a_star_distance = pathfinding(curr_board, frog, color)
+                    if a_star_distance is not None:
+                        frog_score = self.WEIGHTS[len(self.WEIGHTS) - a_star_distance - 1]
+                    else:
+                        frog_score = self.WEIGHTS[len(self.WEIGHTS) - distance - 1]
+                else:
+                # estimate the closest distance to the goal row
+                    frog_score = self.WEIGHTS[len(self.WEIGHTS) - distance - 1]
                 score += frog_score
             return score
 
