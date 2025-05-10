@@ -4,44 +4,24 @@
 import heapq
 from typing import List
 from referee.game.board import CellState, BOARD_N
-from referee.game import PlayerColor, Coord, Direction, Action, MoveAction, GrowAction
 from referee.game import Action, Coord, PlayerColor, Direction, MoveAction, GrowAction
 
-class Cache:
-    """LRU cache for evaluation results"""
-    def __init__(self, max_size=10000):  # Adjust based on memory constraints
-        self.max_size = max_size
-        self.cache = {}
-        self.access_order = []
-    
-    def _make_key(self, board: dict[Coord, str], color: PlayerColor) -> tuple:
-        """Create an immutable key from the board state"""
-        return (
-            frozenset((c.r, c.c, p) for c, p in board.items() if p in ['r', 'b', 'l']),
-            color
-        )
-    
-    def get(self, board: dict[Coord, str], color: PlayerColor) -> float | None:
-        """Get cached evaluation if exists"""
-        key = self._make_key(board, color)
-        if key in self.cache:
-            # Update access order
-            self.access_order.remove(key)
-            self.access_order.append(key)
-            return self.cache[key]
-        return None
-    
+##https://www.youtube.com/watch?v=QYNRvMolN20&t=201s
+class TranspositionTable:
+    def __init__(self):
+        ...
+
+    def __get_hashing_key(self, board: dict[Coord, str]):
+        ...
     def store(self, board: dict[Coord, str], color: PlayerColor, value: float):
-        """Store evaluation result"""
-        key = self._make_key(board, color)
-        
-        # Evict least recently used
-        if len(self.cache) >= self.max_size:
-            oldest_key = self.access_order.pop(0)
-            del self.cache[oldest_key]
-        
-        self.cache[key] = value
-        self.access_order.append(key)
+        """
+        Store the evaluation
+        """
+        ...
+
+    def get(self, curr_board, my_player_color) -> float | None:
+        pass
+
 
 """
 Code from our project A - a* pathfinding
@@ -226,7 +206,7 @@ class Agent:
             self._board[Coord(BOARD_N - 1, c)] = 'b'
 
         # Set minimax search depth
-        self._search_depth = 4 # error when search depth is 1
+        self._search_depth = 5 # error when search depth is 1
         self.__brain = MinMaxSearch(self._board, self._search_depth, self.__color)
 
         #self.__print_board()
@@ -375,7 +355,7 @@ class MinMaxSearch:
         self.depth = depth
         self.color = color
         self.best_move = None
-        self.cache = Cache(max_size=10000)  # Initialize cache with a size limit
+        self.cache = TranspositionTable()
 
     def print_board(self, print_board: dict[Coord, str]):
         """
@@ -509,32 +489,8 @@ class MinMaxSearch:
                 score += frog_score
             return score
 
-        # #evaluate the number of free tiles around the frog movement direction
-        # def evaluate_free_tiles(frogs: list[Coord], color: PlayerColor)-> float:
-        #     lily_pad = set()
-        #     for frog in frogs:
-        #         # estimate the cost to a valid row column
-        #         for direction in get_possible_directions(color):
-        #             new_r = frog.r + direction.r
-        #             new_c = frog.c + direction.c
-        #             if self.is_on_board(new_c, new_r):
-        #                 new_coord = Coord(new_r, new_c)
-        #                 if is_valid_move(curr_board, new_coord):
-        #                     lily_pad.add(new_coord)
-        #     #make the free space that is closer to the goal row more valuable
-        #     goal_row = BOARD_N - 1 if color == PlayerColor.RED else 0
-        #     lily_weight = 0
-        #     for frog in lily_pad:
-        #         distance = abs(goal_row - frog.r)
-        #         lily_weight += self.WEIGHTS[len(self.WEIGHTS) - distance - 1]
-        #     return lily_weight
-
-
         my_score = evaluate_distance_score(get_all_frogs(frog_color), my_player_color)
         opponent_score = evaluate_distance_score(get_all_frogs(opponent_color), opposite_color(my_player_color))
-        #print ("my versus opponent score", my_score)
-        #my_lily_pad = evaluate_free_tiles(get_all_frogs(frog_color), my_player_color)
-        #opponent_lily_pad = evaluate_free_tiles(get_all_frogs(opponent_color), opposite_color(my_player_color))
         total_score = my_score - opponent_score
 
         # store the evaluation result in the cache
