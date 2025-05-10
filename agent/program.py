@@ -8,35 +8,31 @@ from referee.game import PlayerColor, Coord, Direction, Action, MoveAction, Grow
 from referee.game import Action, Coord, PlayerColor, Direction, MoveAction, GrowAction
 
 class Cache:
-    """LRU cache for evaluation results"""
-    def __init__(self, max_size=10000):  # Adjust based on memory constraints
-        self.max_size = max_size
+    """lru cache for evaluation"""
+    def __init__(self, size): # size can vary based on memory
+        self.size = size
         self.cache = {}
         self.access_order = []
     
     def _make_key(self, board: dict[Coord, str], color: PlayerColor) -> tuple:
-        """Create an immutable key from the board state"""
-        return (
-            frozenset((c.r, c.c, p) for c, p in board.items() if p in ['r', 'b', 'l']),
-            color
-        )
+        """create an immutable key from the board state"""
+        return (frozenset((c.r, c.c, pos) for c, pos in board.items() if pos in ['r', 'b', 'l']), color)
     
-    def get(self, board: dict[Coord, str], color: PlayerColor) -> float | None:
-        """Get cached evaluation if exists"""
+    def get_res(self, board: dict[Coord, str], color: PlayerColor) -> float | None:
+        """get cached evaluation if already stored"""
         key = self._make_key(board, color)
         if key in self.cache:
-            # Update access order
+            # update order
             self.access_order.remove(key)
             self.access_order.append(key)
             return self.cache[key]
         return None
     
-    def store(self, board: dict[Coord, str], color: PlayerColor, value: float):
-        """Store evaluation result"""
+    def store_res(self, board: dict[Coord, str], color: PlayerColor, value: float):
+        """store evaluation result"""
         key = self._make_key(board, color)
-        
-        # Evict least recently used
-        if len(self.cache) >= self.max_size:
+        # evict least recently used
+        if len(self.cache) >= self.size:
             oldest_key = self.access_order.pop(0)
             del self.cache[oldest_key]
         
@@ -375,7 +371,8 @@ class MinMaxSearch:
         self.depth = depth
         self.color = color
         self.best_move = None
-        self.cache = Cache(max_size=10000)  # Initialize cache with a size limit
+        max_size = 10000 # size of the cache, 10000 is a good number
+        self.cache = Cache(max_size)
 
     def print_board(self, print_board: dict[Coord, str]):
         """
@@ -472,7 +469,7 @@ class MinMaxSearch:
         Evaluate the board state. Higher values are better for the player.
         """
         # Check if the board state is already cached
-        cached_value = self.cache.get(curr_board, my_player_color)
+        cached_value = self.cache.get_res(curr_board, my_player_color)
         if cached_value is not None:
             return cached_value
         frog_color = None
@@ -538,7 +535,7 @@ class MinMaxSearch:
         total_score = my_score - opponent_score
 
         # store the evaluation result in the cache
-        self.cache.store(curr_board, my_player_color, total_score)
+        self.cache.store_res(curr_board, my_player_color, total_score)
         return total_score
 
     def get_all_possible_jumps(self, start_coord: Coord, initial_board: dict[Coord, str], color: PlayerColor) -> list[
