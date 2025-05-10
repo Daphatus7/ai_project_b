@@ -5,23 +5,90 @@ import heapq
 from typing import List
 from referee.game.board import CellState, BOARD_N
 from referee.game import Action, Coord, PlayerColor, Direction, MoveAction, GrowAction
+import random
+
+class BoardState:
+    def __init__(self, action: Action, evaluation : float, alpha : float, beta : float):
+        self.best_move = action
+        self.evaluation = evaluation
+        self.alpha = alpha
+        self.beta = beta
 
 ##https://www.youtube.com/watch?v=QYNRvMolN20&t=201s
+##https://www.geeksforgeeks.org/minimax-algorithm-in-game-theory-set-5-zobrist-hashing/
 class TranspositionTable:
     def __init__(self):
-        ...
+        self.size = 1000000
+        self.cache = {}
+        random.seed(39)
+        self.zobrist_table = self.__generate_zobrist_table()
 
-    def __get_hashing_key(self, board: dict[Coord, str]):
-        ...
-    def store(self, board: dict[Coord, str], color: PlayerColor, value: float):
+    def __generate_zobrist_table(self) -> [[[]]]:
+        """
+        Generate the Zobrist by assigning a unique random number to each cell representing 3 different states
+        """
+        zobrist_table = [[[]]]
+        for row in range(BOARD_N):
+            for column in range(BOARD_N):
+                """
+                0. l
+                1. r
+                2. b
+                """
+                for cell in range(3):
+                    zobrist_table[row][column][cell] = random.getrandbits(64)
+
+    def get_hashing_key(self, board: [[]]) -> int:
+        """
+        Generate the hash key for the given board
+        """
+        hash_key = 0
+        for row in range(BOARD_N):
+            for column in range(BOARD_N):
+                if board is not None:
+                    cell = board[row][column]
+                    if cell is not None:
+                        cell_value = self.__get_cell_value(cell)
+                        if cell_value is not None:
+                            hash_key ^= self.zobrist_table[row][column][cell_value]
+        return hash_key
+
+    def __get_cell_value(self, cell: str) -> int | None:
+        """
+        Get the cell value
+        """
+        if cell == 'l':
+            return 0
+        elif cell == 'r':
+            return 1
+        elif cell == 'b':
+            return 2
+        else:
+            return None
+
+    def store_board_state(self, board: [[]], board_state: BoardState):
         """
         Store the evaluation
         """
-        ...
+        hash_key = self.get_hashing_key(board)
 
-    def get(self, curr_board, my_player_color) -> float | None:
-        pass
+        if hash_key in self.cache:
+            self.cache[hash_key] = board_state
+        else:
+            if len(self.cache) >= self.size:
+                # remove the oldest entry
+                self.cache.pop(next(iter(self.cache)))
+            self.cache[hash_key] = board_state
 
+
+    def get_cached_board(self, curr_board) -> BoardState | None:
+        """
+        get the cached board
+        1. get the hash key
+        2. check if the hash key is in the cache
+        """
+        hash_key = self.get_hashing_key(curr_board)
+        return self.cache.get(hash_key)
 
 """
 Code from our project A - a* pathfinding
@@ -452,9 +519,9 @@ class MinMaxSearch:
         Evaluate the board state. Higher values are better for the player.
         """
         # Check if the board state is already cached
-        cached_value = self.cache.get(curr_board, my_player_color)
+        cached_value = self.cache.get_cached_board(curr_board, my_player_color)
         if cached_value is not None:
-            return cached_value
+            return cached_value.evaluation
         frog_color = None
         opponent_color = None
         if my_player_color == PlayerColor.RED:
@@ -494,7 +561,7 @@ class MinMaxSearch:
         total_score = my_score - opponent_score
 
         # store the evaluation result in the cache
-        self.cache.store(curr_board, my_player_color, total_score)
+        self.cache.store_board_state(curr_board, my_player_color, total_score)
         return total_score
 
     def get_all_possible_jumps(self, start_coord: Coord, initial_board: dict[Coord, str], color: PlayerColor) -> list[
