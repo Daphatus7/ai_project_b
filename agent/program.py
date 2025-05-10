@@ -701,7 +701,7 @@ class MinMaxSearch:
                         break
 
                 jump_start = Coord(move_r, move_c)
-                if self.can_jump(self.board, jump_start, direction):
+                if self.board.can_jump(jump_start, direction):
                     # need to check every possible jumps
                     for jump in self.get_all_possible_jumps(frog_location, self.board, my_color):
                         value = self.min_max_value(self.apply_action(self.board.copy(), jump, my_color),
