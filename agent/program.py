@@ -522,7 +522,7 @@ class MinMaxSearch:
                                  curr_board.red_frogs_positions,
                                  curr_board.blue_frogs_positions)
 
-        self.cache.store_board_state(curr_board.board, board_state)
+        #self.cache.store_board_state(curr_board.board, board_state)
         return total_score
 
     def get_all_possible_jumps(self, start_coord: Coord, initial_board: MyBoard, color: PlayerColor) -> list[Action]:
@@ -558,23 +558,23 @@ class MinMaxSearch:
         value = float('-inf') if maximizing_player else float('inf')
         # for each frog on the board
 
-        cached_board_state = self.cache.get_cached_board_state(curr_board)
-        if cached_board_state is not None: # that means, we have already calculated the part of the board,
-            # recreate the board from the database
-            cached_board = MyBoard(
-                cached_board_state.board,
-                cached_board_state.red_frogs_positions,
-                cached_board_state.blue_frogs_positions)
-            # if the board is already evaluated -> continue from here
-            # if the board is not evaluated -> evaluate it again
-            print("cached board state", cached_board_state.evaluation)
-            return self.min_max_value(cached_board,
-                                      color,
-                                      depth,
-                                      cached_board_state.alpha,
-                                      cached_board_state.beta,
-                                      cached_board_state.action,
-                                      maximizing_player)
+        # cached_board_state = self.cache.get_cached_board_state(curr_board)
+        # if cached_board_state is not None: # that means, we have already calculated the part of the board,
+        #     # recreate the board from the database
+        #     cached_board = MyBoard(
+        #         cached_board_state.board,
+        #         cached_board_state.red_frogs_positions,
+        #         cached_board_state.blue_frogs_positions)
+        #     # if the board is already evaluated -> continue from here
+        #     # if the board is not evaluated -> evaluate it again
+        #     print("cached board state", cached_board_state.evaluation)
+        #     return self.min_max_value(cached_board,
+        #                               color,
+        #                               depth,
+        #                               cached_board_state.alpha,
+        #                               cached_board_state.beta,
+        #                               cached_board_state.action,
+        #                               maximizing_player)
 
         print("-----Depth-----", depth)
         #1.  copy the board
@@ -655,9 +655,9 @@ class MinMaxSearch:
         new_depth = depth - 1
         if terminal_test(curr_board, new_depth):
             #if the board is already evaluated -> continue from here
-            cached_board_state = self.cache.get_cached_board_state(curr_board)
-            if cached_board_state is not None:
-                return cached_board_state.evaluation
+            # cached_board_state = self.cache.get_cached_board_state(curr_board)
+            # if cached_board_state is not None:
+            #     return cached_board_state.evaluation
             #if not cached, we need to evaluate it again
             evaluation = self.evaluation_function(curr_board,
                                                   alpha,
@@ -665,10 +665,10 @@ class MinMaxSearch:
                                                   current_move,
                                                   self.color)
             # store the evaluation
-            board_state = BoardState(curr_board.board, current_move, evaluation, alpha, beta,
-                                     curr_board.red_frogs_positions,
-                                     curr_board.blue_frogs_positions)
-            self.cache.store_board_state(curr_board.board, board_state)
+            # board_state = BoardState(curr_board.board, current_move, evaluation, alpha, beta,
+            #                          curr_board.red_frogs_positions,
+            #                          curr_board.blue_frogs_positions)
+            #self.cache.store_board_state(curr_board.board, board_state)
             return evaluation
         return self.evaluate_min_max(curr_board, color, new_depth,
                                      alpha, beta,
@@ -689,9 +689,9 @@ class MinMaxSearch:
         best_move = None  # No move selected yet
         explore_depth = self.depth - 1
 
-        cached_board_state = self.cache.get_cached_board_state(self.board)
-        if cached_board_state is not None: # that means, we have already calculated the part of the board,
-            return cached_board_state.action
+        # cached_board_state = self.cache.get_cached_board_state(self.board)
+        # if cached_board_state is not None: # that means, we have already calculated the part of the board,
+        #     return cached_board_state.action
         # Try a grow action first
         # Growing adds lily pads adjacent to all frogs of the player's color
         grow_action = GrowAction()
