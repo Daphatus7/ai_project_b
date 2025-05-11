@@ -366,7 +366,7 @@ class Agent:
             self._board[BOARD_N - 1][column] = 'b'
 
         # Set minimax search depth
-        self._search_depth = 6 # error when search depth is 1
+        self._search_depth = 5 # error when search depth is 1
         self.__brain = MinMaxSearch(self._board, self._search_depth, self.__color)
 
 
