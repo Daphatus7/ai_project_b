@@ -186,7 +186,7 @@ class BoardState:
 ##https://www.geeksforgeeks.org/minimax-algorithm-in-game-theory-set-5-zobrist-hashing/
 class TranspositionTable:
     def __init__(self):
-        self.size = 80000
+        self.size = 90000
         self.cache = {}
         random.seed(39)
         self.zobrist_table = self.__generate_zobrist_table()
