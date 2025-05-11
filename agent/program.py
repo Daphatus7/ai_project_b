@@ -367,7 +367,7 @@ class Agent:
             self._board[BOARD_N - 1][column] = 'b'
 
         # Set minimax search depth
-        self._search_depth = 4 # error when search depth is 1
+        self._search_depth = 5 # error when search depth is 1
         self.__brain = MinMaxSearch(self._board, self._search_depth, self.__color)
 
 
@@ -396,6 +396,7 @@ class Agent:
         self.__brain.update_board(action, color)
         # Print remaining referee time
         print(f"Referee time remaining: {referee['time_remaining']} seconds")
+        print(f"Referee Space remaining: {referee['space_remaining']} bytes")
         #printout board
         #print("----------After-------------")
         #self.__print_board()
@@ -501,7 +502,10 @@ class MinMaxSearch:
         """
         Evaluate the board state. Higher values are better for the player.
         """
-
+        # check if we have evaluated the board before
+        cached_board_state = self.cache.get_cached_board_state(curr_board)
+        if cached_board_state is not None:
+            return cached_board_state.evaluation
 
         def evaluate_distance_score(frogs: list[Coord], color: PlayerColor)-> float:
             score = 0
@@ -531,11 +535,10 @@ class MinMaxSearch:
 
         # store the evaluation result in the cache
 
-        # board_state = BoardState(curr_board.board, current_move, total_score, alpha, beta,
-        #                          curr_board.red_frogs_positions,
-        #                          curr_board.blue_frogs_positions)
-
-        #self.cache.store_board_state(curr_board.board, board_state)
+        board_state = BoardState(curr_board.board, current_move, total_score, alpha, beta,
+                                 curr_board.red_frogs_positions,
+                                 curr_board.blue_frogs_positions)
+        self.cache.store_board_state(curr_board.board, board_state)
         return total_score
 
     def get_all_possible_jumps(self, start_coord: Coord, initial_board: MyBoard, color: PlayerColor) -> list[Action]:
@@ -571,23 +574,24 @@ class MinMaxSearch:
         value = float('-inf') if maximizing_player else float('inf')
         # for each frog on the board
 
-        # cached_board_state = self.cache.get_cached_board_state(curr_board)
-        # if cached_board_state is not None: # that means, we have already calculated the part of the board,
-        #     # recreate the board from the database
-        #     cached_board = MyBoard(
-        #         cached_board_state.board,
-        #         cached_board_state.red_frogs_positions,
-        #         cached_board_state.blue_frogs_positions)
+        cached_board_state = self.cache.get_cached_board_state(curr_board)
+        if cached_board_state is not None: # that means, we have already calculated the part of the board,
+            cached_board = MyBoard(
+                cached_board_state.board,
+                cached_board_state.red_frogs_positions,
+                cached_board_state.blue_frogs_positions)
         #     # if the board is already evaluated -> continue from here
         #     # if the board is not evaluated -> evaluate it again
-        #     print("cached board state", cached_board_state.evaluation)
-        #     return self.min_max_value(cached_board,
-        #                               color,
-        #                               depth,
-        #                               cached_board_state.alpha,
-        #                               cached_board_state.beta,
-        #                               cached_board_state.action,
-        #                               maximizing_player)
+            best_action = cached_board_state.action
+
+
+            return self.min_max_value(cached_board,
+                                      color,
+                                      depth,
+                                      cached_board_state.alpha,
+                                      cached_board_state.beta,
+                                      cached_board_state.action,
+                                      maximizing_player)
 
         #1.  copy the board
         new_board = curr_board.deep_copy()
@@ -717,7 +721,6 @@ class MinMaxSearch:
                                         grow_action,
                                         False)
 
-        print("jump", grow_value)
         # Update best move if grow action is better than current best
         if grow_value > max_value:
             max_value = grow_value
@@ -746,7 +749,6 @@ class MinMaxSearch:
                                beta,
                                move_action,
                                False)
-                    print("move", value)
                     if value > max_value:
                         max_value = value
                         best_move = move_action
@@ -769,7 +771,6 @@ class MinMaxSearch:
                                                    beta,
                                                    jump,
                                                    False)
-                        print("jump", value)
                         if value > max_value:
                             max_value = value
                             best_move = jump
