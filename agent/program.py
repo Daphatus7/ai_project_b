@@ -6,6 +6,42 @@ from typing import List
 from referee.game.board import BOARD_N, Board
 from referee.game import Action, Coord, PlayerColor, Direction, MoveAction, GrowAction
 import random
+zobrist_table = [[[random.getrandbits(64) for _ in range(3)] for _ in range(BOARD_N)] for _ in range(BOARD_N)]
+
+
+def get_cell_value(cell: str) -> int | None:
+    """
+    Get the cell value
+    lily pad = 0
+    red frog = 1
+    blue frog = 2
+    """
+    if cell == 'l':
+        return 0
+    elif cell == 'r':
+        return 1
+    elif cell == 'b':
+        return 2
+    else:
+        return None
+
+def get_hashing_key(board: list[list[str]]) -> int:
+    """
+    Generate the zobrist key for the given board
+    """
+    hash_key = 0
+    for row in range(BOARD_N):
+        for column in range(BOARD_N):
+            if board is not None:
+                cell = board[row][column]
+                if cell is not None:
+                    cell_value = get_cell_value(cell)
+                    if cell_value is not None:
+                        # xor each cell value
+                        hash_key ^= zobrist_table[row][column][cell_value]
+    return hash_key
+
+
 
 
 def get_grow_tiles(curr: Coord) -> list[Coord]:
@@ -27,6 +63,7 @@ class MyBoard:
         self.board = board
         self.red_frogs_positions = set()
         self.blue_frogs_positions = set()
+        self.hash_key = get_hashing_key(board)
 
         if red_frogs_positions is not None and blue_frogs_positions is not None:
             self.red_frogs_positions = set(red_frogs_positions) # this is a copied instance
@@ -40,6 +77,8 @@ class MyBoard:
 
                     elif cell == 'b':
                         self.blue_frogs_positions.add(Coord(row, column))
+
+
 
     #how to update frog positions
     def get_frog_coords(self, color: PlayerColor) -> list[Coord]:
@@ -182,6 +221,7 @@ class BoardState:
         self.alpha = alpha
         self.beta = beta
 
+
 ##https://www.youtube.com/watch?v=QYNRvMolN20&t=201s
 ##https://www.geeksforgeeks.org/minimax-algorithm-in-game-theory-set-5-zobrist-hashing/
 class TranspositionTable:
@@ -189,52 +229,11 @@ class TranspositionTable:
         self.size = 90000
         self.cache = {}
         random.seed(39)
-        self.zobrist_table = self.__generate_zobrist_table()
 
-    def __generate_zobrist_table(self) -> list[list[list[int]]]:
-        """
-        Generate the Zobrist by assigning a unique random number to each cell representing 3 different states
-        """
-        return [[[random.getrandbits(64) for _ in range(3)] for _ in range(BOARD_N)] for _ in range(BOARD_N)]
-
-    def get_hashing_key(self, board: list[list[str]]) -> int:
-        """
-        Generate the zobrist key for the given board
-        """
-        hash_key = 0
-        for row in range(BOARD_N):
-            for column in range(BOARD_N):
-                if board is not None:
-                    cell = board[row][column]
-                    if cell is not None:
-                        cell_value = self.__get_cell_value(cell)
-                        if cell_value is not None:
-                            #xor each cell value
-                            hash_key ^= self.zobrist_table[row][column][cell_value]
-        return hash_key
-
-    def __get_cell_value(self, cell: str) -> int | None:
-        """
-        Get the cell value
-        lily pad = 0
-        red frog = 1
-        blue frog = 2
-        """
-        if cell == 'l':
-            return 0
-        elif cell == 'r':
-            return 1
-        elif cell == 'b':
-            return 2
-        else:
-            return None
-
-    def store_board_state(self, board: list[list[str]], board_state: BoardState):
+    def store_board_state(self, hash_key, board_state: BoardState):
         """
         Store the evaluation
         """
-        hash_key = self.get_hashing_key(board)
-
         if hash_key in self.cache:
             self.cache[hash_key] = board_state
         else:
@@ -243,13 +242,13 @@ class TranspositionTable:
                 self.cache.pop(next(iter(self.cache)))
             self.cache[hash_key] = board_state
 
-    def get_cached_board_state(self, curr_board : MyBoard) -> BoardState | None:
+    def get_cached_board_state(self, hash_key : int) -> BoardState | None:
         """
         get the cached board
         1. get the hash key
         2. check if the hash key is in the cache
         """
-        return self.cache.get(self.get_hashing_key(curr_board.board))
+        return self.cache.get(hash_key)
 
 """
 Code from our project A - a* pathfinding
@@ -367,7 +366,7 @@ class Agent:
             self._board[BOARD_N - 1][column] = 'b'
 
         # Set minimax search depth
-        self._search_depth = 5 # error when search depth is 1
+        self._search_depth = 6 # error when search depth is 1
         self.__brain = MinMaxSearch(self._board, self._search_depth, self.__color)
 
 
@@ -503,7 +502,7 @@ class MinMaxSearch:
         Evaluate the board state. Higher values are better for the player.
         """
         # check if we have evaluated the board before
-        cached_board_state = self.cache.get_cached_board_state(curr_board)
+        cached_board_state = self.cache.get_cached_board_state(curr_board.hash_key)
         if cached_board_state is not None:
             return cached_board_state.evaluation
 
@@ -538,7 +537,7 @@ class MinMaxSearch:
         board_state = BoardState(curr_board.board, current_move, total_score, alpha, beta,
                                  curr_board.red_frogs_positions,
                                  curr_board.blue_frogs_positions)
-        self.cache.store_board_state(curr_board.board, board_state)
+        self.cache.store_board_state(curr_board.hash_key, board_state)
         return total_score
 
     def get_all_possible_jumps(self, start_coord: Coord, initial_board: MyBoard, color: PlayerColor) -> list[Action]:
@@ -574,24 +573,23 @@ class MinMaxSearch:
         value = float('-inf') if maximizing_player else float('inf')
         # for each frog on the board
 
-        cached_board_state = self.cache.get_cached_board_state(curr_board)
-        if cached_board_state is not None: # that means, we have already calculated the part of the board,
-            cached_board = MyBoard(
-                cached_board_state.board,
-                cached_board_state.red_frogs_positions,
-                cached_board_state.blue_frogs_positions)
-        #     # if the board is already evaluated -> continue from here
-        #     # if the board is not evaluated -> evaluate it again
-            best_action = cached_board_state.action
-
-
-            return self.min_max_value(cached_board,
-                                      color,
-                                      depth,
-                                      cached_board_state.alpha,
-                                      cached_board_state.beta,
-                                      cached_board_state.action,
-                                      maximizing_player)
+        # cached_board_state = self.cache.get_cached_board_state(curr_board.hash_key)
+        # if cached_board_state is not None: # that means, we have already calculated the part of the board,
+        #     cached_board = MyBoard(
+        #         cached_board_state.board,
+        #         cached_board_state.red_frogs_positions,
+        #         cached_board_state.blue_frogs_positions)
+        # #     # if the board is already evaluated -> continue from here
+        # #     # if the board is not evaluated -> evaluate it again
+        #     best_action = cached_board_state.action
+        #
+        #     return self.min_max_value(cached_board,
+        #                               color,
+        #                               depth,
+        #                               cached_board_state.alpha,
+        #                               cached_board_state.beta,
+        #                               cached_board_state.action,
+        #                               maximizing_player)
 
         #1.  copy the board
         new_board = curr_board.deep_copy()
@@ -670,21 +668,11 @@ class MinMaxSearch:
                       maximizing_player: bool) -> float | List[Action] | Action:
         new_depth = depth - 1
         if terminal_test(curr_board, new_depth):
-            #if the board is already evaluated -> continue from here
-            # cached_board_state = self.cache.get_cached_board_state(curr_board)
-            # if cached_board_state is not None:
-            #     return cached_board_state.evaluation
-            #if not cached, we need to evaluate it again
             evaluation = self.evaluation_function(curr_board,
                                                   alpha,
                                                   beta,
                                                   current_move,
                                                   self.color)
-            # store the evaluation
-            # board_state = BoardState(curr_board.board, current_move, evaluation, alpha, beta,
-            #                          curr_board.red_frogs_positions,
-            #                          curr_board.blue_frogs_positions)
-            #self.cache.store_board_state(curr_board.board, board_state)
             return evaluation
         return self.evaluate_min_max(curr_board, color, new_depth,
                                      alpha, beta,
