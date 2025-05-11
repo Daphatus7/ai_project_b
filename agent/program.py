@@ -668,7 +668,6 @@ class MinMaxSearch:
                       maximizing_player: bool) -> float | List[Action] | Action:
         new_depth = depth - 1
         if terminal_test(curr_board, new_depth):
-
             #if the board is already evaluated -> continue from here
             cached_board_state = self.cache.get_cached_board_state(curr_board)
             if cached_board_state is not None:
@@ -683,7 +682,7 @@ class MinMaxSearch:
             board_state = BoardState(curr_board.board, current_move, evaluation, alpha, beta,
                                      curr_board.red_frogs_positions,
                                      curr_board.blue_frogs_positions)
-            self.cache.store_board_state(curr_board, board_state)
+            self.cache.store_board_state(curr_board.board, board_state)
             return evaluation
         return self.evaluate_min_max(curr_board, color, new_depth,
                                      alpha, beta,
@@ -706,8 +705,7 @@ class MinMaxSearch:
 
         cached_board_state = self.cache.get_cached_board_state(self.board)
         if cached_board_state is not None: # that means, we have already calculated the part of the board,
-            #
-            return
+            return cached_board_state.action
         # Try a grow action first
         # Growing adds lily pads adjacent to all frogs of the player's color
         grow_action = GrowAction()
@@ -779,5 +777,4 @@ class MinMaxSearch:
                             break
             if beta <= alpha:
                 break
-        #print("best move", best_move)
         return best_move
