@@ -37,6 +37,7 @@ class MyBoard:
                     cell = board[row][column]
                     if cell == 'r':
                         self.red_frogs_positions.add(Coord(row, column))
+
                     elif cell == 'b':
                         self.blue_frogs_positions.add(Coord(row, column))
 
@@ -159,7 +160,7 @@ class MyBoard:
                     self.blue_frogs_positions.copy())
 class BoardState:
     def __init__(self,board :list[list[str]], action: Action, evaluation : float, alpha : float, beta : float, red_frog_positions, blue_frogs_positions):
-        self.board : list[list[str]] = board.copy()
+        self.board = [row[:] for row in board]
         self.red_frogs_positions = red_frog_positions.copy()
         self.blue_frogs_positions = blue_frogs_positions.copy()
         self.action = action
@@ -347,7 +348,7 @@ class Agent:
                 self._board[row][column] = 'l'
 
         # Initial RED and BLUE pieces
-        for c in range(1, BOARD_N - 1):
+        for column in range(1, BOARD_N - 1):
             self._board[0][column] = 'r'
             self._board[BOARD_N - 1][column] = 'b'
 
@@ -524,7 +525,6 @@ class MinMaxSearch:
         #                          curr_board.blue_frogs_positions)
 
         #self.cache.store_board_state(curr_board.board, board_state)
-        print("total score", total_score)
         return total_score
 
     def get_all_possible_jumps(self, start_coord: Coord, initial_board: MyBoard, color: PlayerColor) -> list[Action]:
@@ -578,7 +578,6 @@ class MinMaxSearch:
         #                               cached_board_state.action,
         #                               maximizing_player)
 
-        print("-----Depth-----", depth)
         #1.  copy the board
         new_board = curr_board.deep_copy()
         # apply the action
@@ -706,6 +705,7 @@ class MinMaxSearch:
                                         alpha, beta,
                                         grow_action,
                                         False)
+
         print("jump", grow_value)
         # Update best move if grow action is better than current best
         if grow_value > max_value:
