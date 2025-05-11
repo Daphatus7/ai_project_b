@@ -488,15 +488,7 @@ class MinMaxSearch:
         """
         Evaluate the board state. Higher values are better for the player.
         """
-        # Check if the board state is already cached
-        frog_color = None
-        opponent_color = None
-        if my_player_color == PlayerColor.RED:
-            frog_color = 'r'
-            opponent_color = 'b'
-        elif my_player_color == PlayerColor.BLUE:
-            frog_color = 'b'
-            opponent_color = 'r'
+
 
         def evaluate_distance_score(frogs: list[Coord], color: PlayerColor)-> float:
             score = 0
@@ -567,7 +559,8 @@ class MinMaxSearch:
         # for each frog on the board
 
         cached_board_state = self.cache.get_cached_board_state(curr_board)
-        if cached_board_state is not None:
+        if cached_board_state is not None: # that means, we have already calculated the part of the board,
+            # recreate the board from the database
             cached_board = MyBoard(
                 cached_board_state.board,
                 cached_board_state.red_frogs_positions,
