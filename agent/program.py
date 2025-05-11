@@ -69,11 +69,25 @@ class MyBoard:
             for direction in directions:
                 new_r = curr_r + direction.r
                 new_c = curr_c + direction.c
-                if is_on_board(new_r, new_c):
-                    # considering jump
-                    if self.board[curr_r][curr_c] in ['r', 'b']:
-                        curr_r += direction.r
-                        curr_c += direction.c
+
+                # illegal move -> break
+                if not is_on_board(new_r, new_c): break
+
+                if self.board[new_r][new_c] == 'l':
+                    curr_r = new_r
+                    curr_c = new_c
+                    continue
+
+                # consider if it is a jump
+                if self.board[new_r][new_c] in ['r', 'b']:
+                    new_r += direction.r
+                    new_c += direction.c
+                    if not is_on_board(curr_r, curr_c): break
+                    # if it is a jump, remove the frog
+                    if self.board[new_r][new_c] == 'l':
+                        curr_r = new_r
+                        curr_c = new_c
+                    continue
             # destination
             self.board[curr_r][curr_c] = frog_color
             self.__update_frog_positions(action.coord, Coord(curr_r, curr_c))
@@ -353,7 +367,7 @@ class Agent:
             self._board[BOARD_N - 1][column] = 'b'
 
         # Set minimax search depth
-        self._search_depth = 5 # error when search depth is 1
+        self._search_depth = 3 # error when search depth is 1
         self.__brain = MinMaxSearch(self._board, self._search_depth, self.__color)
 
 
