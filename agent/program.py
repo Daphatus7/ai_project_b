@@ -574,6 +574,7 @@ class MinMaxSearch:
                 cached_board_state.blue_frogs_positions)
             # if the board is already evaluated -> continue from here
             # if the board is not evaluated -> evaluate it again
+            print("cached board state", cached_board_state.evaluation)
             return self.min_max_value(cached_board,
                                       color,
                                       depth,
@@ -582,15 +583,7 @@ class MinMaxSearch:
                                       cached_board_state.action,
                                       maximizing_player)
 
-        # if the board is already evaluated -> continue from here
-        # -----------------
-
-        #--------No need to continue hashing, because if the current state is not evaluated
-        # the following are new more or less
-
-        #------------------
-
-
+        print("-----Depth-----", depth)
         #1.  copy the board
         new_board = curr_board.deep_copy()
         # apply the action
@@ -718,7 +711,7 @@ class MinMaxSearch:
                                         alpha, beta,
                                         grow_action,
                                         False)
-
+        print("jump", grow_value)
         # Update best move if grow action is better than current best
         if grow_value > max_value:
             max_value = grow_value
@@ -747,6 +740,7 @@ class MinMaxSearch:
                                beta,
                                move_action,
                                False)
+                    print("move", value)
                     if value > max_value:
                         max_value = value
                         best_move = move_action
@@ -769,6 +763,7 @@ class MinMaxSearch:
                                                    beta,
                                                    jump,
                                                    False)
+                        print("jump", value)
                         if value > max_value:
                             max_value = value
                             best_move = jump
