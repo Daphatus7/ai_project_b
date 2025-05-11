@@ -519,11 +519,12 @@ class MinMaxSearch:
 
         # store the evaluation result in the cache
 
-        board_state = BoardState(curr_board.board, current_move, total_score, alpha, beta,
-                                 curr_board.red_frogs_positions,
-                                 curr_board.blue_frogs_positions)
+        # board_state = BoardState(curr_board.board, current_move, total_score, alpha, beta,
+        #                          curr_board.red_frogs_positions,
+        #                          curr_board.blue_frogs_positions)
 
         #self.cache.store_board_state(curr_board.board, board_state)
+        print("total score", total_score)
         return total_score
 
     def get_all_possible_jumps(self, start_coord: Coord, initial_board: MyBoard, color: PlayerColor) -> list[Action]:
@@ -593,7 +594,7 @@ class MinMaxSearch:
             for direction in get_possible_directions(color):  # possible moves should also include jumps
                 move_r = frog.r + direction.r
                 move_c = frog.c + direction.c
-                if not is_on_board(move_c, move_r):
+                if not is_on_board(move_r, move_c):
                     continue
                 move = frog + direction
                 # if is a lily pad -> end
@@ -716,7 +717,7 @@ class MinMaxSearch:
             for direction in get_possible_directions(my_color):
                 move_r = frog_location.r + direction.r
                 move_c = frog_location.c + direction.c
-                if not is_on_board(move_c, move_r):
+                if not is_on_board(move_r, move_c):
                     continue
                 # if the next cell is a lilypad
                 if self.board.is_valid_move(Coord(move_r, move_c)):
