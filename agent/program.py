@@ -161,7 +161,7 @@ class BoardState:
         self.board : list[list[str]] = board.copy()
         self.red_frogs_positions = red_frog_positions.copy()
         self.blue_frogs_positions = blue_frogs_positions.copy()
-        self.action = action.copy()
+        self.action = action
         self.evaluation = evaluation
         self.alpha = alpha
         self.beta = beta
@@ -175,22 +175,13 @@ class TranspositionTable:
         random.seed(39)
         self.zobrist_table = self.__generate_zobrist_table()
 
-    def __generate_zobrist_table(self) -> [[[]]]:
+    def __generate_zobrist_table(self) -> list[list[list[int]]]:
         """
         Generate the Zobrist by assigning a unique random number to each cell representing 3 different states
         """
-        zobrist_table = [[[]]]
-        for row in range(BOARD_N):
-            for column in range(BOARD_N):
-                """
-                0. l
-                1. r
-                2. b
-                """
-                for cell in range(3):
-                    zobrist_table[row][column][cell] = random.getrandbits(64)
+        return [[[random.getrandbits(64) for _ in range(3)] for _ in range(BOARD_N)] for _ in range(BOARD_N)]
 
-    def get_hashing_key(self, board: [[]]) -> int:
+    def get_hashing_key(self, board: list[list[str]]) -> int:
         """
         Generate the zobrist key for the given board
         """
@@ -222,7 +213,7 @@ class TranspositionTable:
         else:
             return None
 
-    def store_board_state(self, board: [[]], board_state: BoardState):
+    def store_board_state(self, board: list[list[str]], board_state: BoardState):
         """
         Store the evaluation
         """
@@ -236,13 +227,13 @@ class TranspositionTable:
                 self.cache.pop(next(iter(self.cache)))
             self.cache[hash_key] = board_state
 
-    def get_cached_board_state(self, curr_board) -> BoardState | None:
+    def get_cached_board_state(self, curr_board : MyBoard) -> BoardState | None:
         """
         get the cached board
         1. get the hash key
         2. check if the hash key is in the cache
         """
-        return self.cache.get(self.get_hashing_key(curr_board))
+        return self.cache.get(self.get_hashing_key(curr_board.board))
 
 """
 Code from our project A - a* pathfinding
@@ -539,7 +530,7 @@ class MinMaxSearch:
                                  curr_board.red_frogs_positions,
                                  curr_board.blue_frogs_positions)
 
-        self.cache.store_board_state(curr_board, board_state)
+        self.cache.store_board_state(curr_board.board, board_state)
         return total_score
 
     def get_all_possible_jumps(self, start_coord: Coord, initial_board: MyBoard, color: PlayerColor) -> list[Action]:
@@ -575,7 +566,7 @@ class MinMaxSearch:
         value = float('-inf') if maximizing_player else float('inf')
         # for each frog on the board
 
-        cached_board_state = self.cache.get_cached_board_state(curr_board.board)
+        cached_board_state = self.cache.get_cached_board_state(curr_board)
         if cached_board_state is not None:
             cached_board = MyBoard(
                 cached_board_state.board,
