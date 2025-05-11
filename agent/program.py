@@ -6,8 +6,8 @@ from typing import List
 from referee.game.board import BOARD_N, Board
 from referee.game import Action, Coord, PlayerColor, Direction, MoveAction, GrowAction
 import random
-zobrist_table = [[[random.getrandbits(64) for _ in range(3)] for _ in range(BOARD_N)] for _ in range(BOARD_N)]
 
+zobrist_table = [[[random.getrandbits(64) for _ in range(3)] for _ in range(BOARD_N)] for _ in range(BOARD_N)]
 
 def get_cell_value(cell: str) -> int | None:
     """
@@ -40,9 +40,6 @@ def get_hashing_key(board: list[list[str]]) -> int:
                         # xor each cell value
                         hash_key ^= zobrist_table[row][column][cell_value]
     return hash_key
-
-
-
 
 def get_grow_tiles(curr: Coord) -> list[Coord]:
     """
@@ -211,6 +208,7 @@ class MyBoard:
         return MyBoard([row[:] for row in self.board],
                     self.red_frogs_positions.copy(),
                     self.blue_frogs_positions.copy())
+
 class BoardState:
     def __init__(self,board :list[list[str]], action: Action, evaluation : float, alpha : float, beta : float, red_frog_positions, blue_frogs_positions):
         self.board = [row[:] for row in board]
@@ -221,12 +219,11 @@ class BoardState:
         self.alpha = alpha
         self.beta = beta
 
-
 ##https://www.youtube.com/watch?v=QYNRvMolN20&t=201s
 ##https://www.geeksforgeeks.org/minimax-algorithm-in-game-theory-set-5-zobrist-hashing/
 class TranspositionTable:
     def __init__(self):
-        self.size = 90000
+        self.size = 90000 # safe estimation
         self.cache = {}
         random.seed(39)
 
@@ -366,7 +363,7 @@ class Agent:
             self._board[BOARD_N - 1][column] = 'b'
 
         # Set minimax search depth
-        self._search_depth = 5 # error when search depth is 1
+        self._search_depth = 4 # error when search depth is 1
         self.__brain = MinMaxSearch(self._board, self._search_depth, self.__color)
 
 
@@ -482,7 +479,7 @@ class MinMaxSearch:
         The initial state of the board
         """
         self.board = MyBoard(board)
-        self.depth = depth
+        self.base_depth = depth
         self.color = color
         self.best_move = None
         self.cache = TranspositionTable()
@@ -708,7 +705,7 @@ class MinMaxSearch:
         alpha = float('-inf')
         beta = float('inf')
         best_move = None  # No move selected yet
-        explore_depth = self.depth - 1
+        explore_depth = self.get_dynamic_depth(self.board)
 
         # cached_board_state = self.cache.get_cached_board_state(self.board)
         # if cached_board_state is not None: # that means, we have already calculated the part of the board,
@@ -797,3 +794,28 @@ class MinMaxSearch:
         print("Overall nodes pruned", self.total_nodes_pruned)
 
         return best_move
+
+    def at_critical_pos(self, board: MyBoard) -> bool:
+        """check if frogs are close to goal"""
+        my_frogs = board.get_frog_coords(self.color)
+        goal_row = BOARD_N - 1 if self.color == PlayerColor.RED else 0
+        critical_positions = sum(1 for frog in my_frogs if abs(frog.r - goal_row) <= 3)
+        if critical_positions > 2:
+            return True
+        return False
+
+    def in_late_game(self, board: MyBoard) -> bool:
+        # late in game, most frogs close to goal
+        my_frogs = board.get_frog_coords(self.color)
+        goal_row = BOARD_N - 1 if self.color == PlayerColor.RED else 0
+        late_pos_count = sum(1 for frog in my_frogs if abs(frog.r - goal_row) <= 2)
+        return late_pos_count > len(my_frogs) // 2
+
+    def get_dynamic_depth(self, board: MyBoard) -> int:
+        """depth based on game state"""
+        if self.at_critical_pos(board):
+            return self.base_depth + 1
+        elif self.in_late_game(board):
+            return self.base_depth + 2
+        else:
+            return self.base_depth
