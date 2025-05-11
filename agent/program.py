@@ -486,6 +486,10 @@ class MinMaxSearch:
         self.color = color
         self.best_move = None
         self.cache = TranspositionTable()
+        self.nodes_explored = 0
+        self.nodes_pruned = 0
+        self.total_nodes_explored = 0
+        self.total_nodes_pruned = 0
 
     def update_board(self, action: Action, color: PlayerColor):
         self.board.apply_action(action, color)
@@ -627,11 +631,15 @@ class MinMaxSearch:
                         value = max(value, result)
                         alpha = max(alpha, result)
                         if beta <= alpha:
+                            self.nodes_pruned += 1
+                            self.total_nodes_pruned += 1
                             break
                     else:
                         value = min(value, result)
                         beta = min(beta, result)
                         if beta <= alpha:
+                            self.nodes_pruned += 1
+                            self.total_nodes_pruned += 1
                             break
 
                 # if the next location is a frog -> apply the move ->
@@ -653,19 +661,27 @@ class MinMaxSearch:
                             value = max(value, result)
                             alpha = max(alpha, result)
                             if beta <= alpha:
+                                self.nodes_pruned += 1
+                                self.total_nodes_pruned += 1
                                 break
                         else:
                             value = min(value, result)
                             beta = min(beta, result)
                             if beta <= alpha:
+                                self.nodes_pruned += 1
+                                self.total_nodes_pruned += 1
                                 break
             if beta <= alpha:
+                self.nodes_pruned += 1
+                self.total_nodes_pruned += 1
                 break
         return value
     def min_max_value(self, curr_board: MyBoard, color: PlayerColor, depth: int,
                       alpha, beta,
                       current_move: Action,
                       maximizing_player: bool) -> float | List[Action] | Action:
+        self.nodes_explored += 1
+        self.total_nodes_explored += 1
         new_depth = depth - 1
         if terminal_test(curr_board, new_depth):
             evaluation = self.evaluation_function(curr_board,
@@ -685,7 +701,8 @@ class MinMaxSearch:
         2. we estimate the impact of next move
         3. then we conclude if the next move is the best
         """
-
+        self.nodes_explored = 0
+        self.nodes_pruned = 0
         # min value
         max_value = float('-inf')
         alpha = float('-inf')
@@ -742,6 +759,8 @@ class MinMaxSearch:
                         best_move = move_action
                     alpha = max(alpha, value)
                     if beta <= alpha:
+                        self.nodes_pruned += 1
+                        self.total_nodes_pruned += 1
                         break
 
                 jump_start = Coord(move_r, move_c)
@@ -764,7 +783,17 @@ class MinMaxSearch:
                             best_move = jump
                         alpha = max(alpha, value)
                         if beta <= alpha:
+                            self.nodes_pruned += 1
+                            self.total_nodes_pruned += 1
                             break
             if beta <= alpha:
+                self.nodes_pruned += 1
+                self.total_nodes_pruned += 1
                 break
+
+        print("nodes explored", self.nodes_explored)
+        print("nodes pruned", self.nodes_pruned)
+        print("Overall nodes explored", self.total_nodes_explored)
+        print("Overall nodes pruned", self.total_nodes_pruned)
+
         return best_move
