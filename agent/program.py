@@ -17,7 +17,7 @@ def get_grow_tiles(curr: Coord) -> list[Coord]:
     for row, column in [(-1, -1), (-1, 0), (-1, 1), (0, -1), (0, 1), (1, -1), (1, 0), (1, 1)]:
         new_row = curr.r + row
         new_col = curr.c + column
-        if is_on_board(new_col, new_row):
+        if is_on_board(new_row, new_col):
             grow_tiles.append(Coord(new_row, new_col))
     return grow_tiles
 
@@ -83,7 +83,7 @@ class MyBoard:
                 # for all frogs
                 for grow_tile in get_grow_tiles(frog):
                     # if the tile is empty
-                    if grow_tile not in self.board:
+                    if self.board[grow_tile.r][grow_tile.c] == '.':
                         self.board[grow_tile.r][grow_tile.c] = 'l'
         return self.board
 
@@ -154,8 +154,9 @@ class MyBoard:
         """
         Create a deep copy of the board
         """
-        return MyBoard(self.board.copy(), self.red_frogs_positions, self.blue_frogs_positions)
-
+        return MyBoard([row[:] for row in self.board],
+                    self.red_frogs_positions.copy(),
+                    self.blue_frogs_positions.copy())
 class BoardState:
     def __init__(self,board :list[list[str]], action: Action, evaluation : float, alpha : float, beta : float, red_frog_positions, blue_frogs_positions):
         self.board : list[list[str]] = board.copy()
@@ -537,7 +538,7 @@ class MinMaxSearch:
                 converted_coord = convert_direction_to_coord(direction)
                 n_r = curr.r + converted_coord[0]
                 n_c = curr.c + converted_coord[1]
-                if is_on_board(n_c, n_r):  # check if the next cell is on the board
+                if is_on_board(n_r, n_c):  # check if the next cell is on the board
                     neighbour = Coord(n_r, n_c)
                     if not neighbour in visited:  # check if the next cell is already visited
                         if initial_board.can_jump(neighbour, direction):
