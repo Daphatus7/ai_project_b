@@ -75,7 +75,7 @@ class MyBoard:
                         curr_c += direction.c
             # destination
             self.board[curr_r][curr_c] = frog_color
-            self.update_frog_positions(action.coord, Coord(curr_r, curr_c))
+            self.__update_frog_positions(action.coord, Coord(curr_r, curr_c))
         # grow around the player
         elif isinstance(action, GrowAction):
             frogs = self.get_frog_coords(color)
@@ -93,7 +93,7 @@ class MyBoard:
         """
         return self.board[move.r][move.c] == 'l'
 
-    def update_frog_positions(self, frog: Coord, frog_new_coord: Coord):
+    def __update_frog_positions(self, frog: Coord, frog_new_coord: Coord):
         """
         the frog must be either red or blue
         """
@@ -159,9 +159,9 @@ class MyBoard:
 class BoardState:
     def __init__(self,board :list[list[str]], action: Action, evaluation : float, alpha : float, beta : float, red_frog_positions, blue_frogs_positions):
         self.board : list[list[str]] = board.copy()
-        self.red_frogs_positions : red_frog_positions.copy()
-        self.blue_frogs_positions : blue_frogs_positions.copy()
-        self.best_move = action.copy()
+        self.red_frogs_positions = red_frog_positions.copy()
+        self.blue_frogs_positions = blue_frogs_positions.copy()
+        self.action = action.copy()
         self.evaluation = evaluation
         self.alpha = alpha
         self.beta = beta
@@ -334,40 +334,15 @@ class Agent:
     respond to various Freckers game events.
     """
 
-    # def _convert_board(self, board_data) -> list[list[str]]:
-    #     converted = {}
-    #     for coord, cell in board_data.items():
-    #         # Extract state from CellState if needed
-    #         if isinstance(cell, CellState):
-    #             state = cell.state
-    #         else:
-    #             state = cell
-    #
-    #         # Map to internal representation
-    #         if state == PlayerColor.RED:
-    #             converted[coord] = 'r'
-    #         elif state == PlayerColor.BLUE:
-    #             converted[coord] = 'b'
-    #         elif str(state) == "LilyPad":  # Handle enum string representation
-    #             converted[coord] = 'l'
-    #         else:
-    #             converted[coord] = '.'  # Empty cells
-    #     return converted
-
     def __init__(self, color: PlayerColor, **referee: dict):
         """
         This constructor method runs when the referee instantiates the agent.
         Any setup and/or precomputation should be done here.
         """
         self.__color = color
-        self._board: list[list[str]] = [[]]
-
+        self._board: list[list[str]] = [['.' for _ in range(BOARD_N)] for _ in range(BOARD_N)]
         """ # Setup initial board state
         print("\nSetting up initial board state...") """
-
-        for row in range(BOARD_N):
-            for column in range(BOARD_N):
-                self._board[row][column] = '.'
 
         # Corner lily pads
         for row in [0, BOARD_N - 1]:
@@ -509,19 +484,20 @@ class MinMaxSearch:
         self.cache = TranspositionTable()
 
     def update_board(self, action: Action, color: PlayerColor):
-        self.board.apply_action(self.board.board, action, color)
+        self.board.apply_action(action, color)
 
     WEIGHTS = [1, 2, 4, 8, 16, 32, 64, 200, 850] # 62
 
 
-    def evaluation_function(self, curr_board: MyBoard, my_player_color: PlayerColor) -> float:
+    def evaluation_function(self, curr_board: MyBoard,
+                            alpha: float,
+                            beta: float,
+                            current_move: Action,
+                            my_player_color: PlayerColor) -> float:
         """
         Evaluate the board state. Higher values are better for the player.
         """
         # Check if the board state is already cached
-        cached_board = self.cache.get_cached_board(curr_board.board)
-        if cached_board is not None:
-            return cached_board.evaluation
         frog_color = None
         opponent_color = None
         if my_player_color == PlayerColor.RED:
@@ -558,7 +534,12 @@ class MinMaxSearch:
         total_score = my_score - opponent_score
 
         # store the evaluation result in the cache
-        self.cache.store_board_state(curr_board, my_player_color, total_score)xx
+
+        board_state = BoardState(curr_board.board, current_move, total_score, alpha, beta,
+                                 curr_board.red_frogs_positions,
+                                 curr_board.blue_frogs_positions)
+
+        self.cache.store_board_state(curr_board, board_state)
         return total_score
 
     def get_all_possible_jumps(self, start_coord: Coord, initial_board: MyBoard, color: PlayerColor) -> list[Action]:
@@ -589,25 +570,43 @@ class MinMaxSearch:
 
     def evaluate_min_max(self, curr_board: MyBoard, color: PlayerColor, depth: int,
                          alpha, beta,
-                         last_action : Action,
+                         current_move : Action,
                          maximizing_player: bool):
         value = float('-inf') if maximizing_player else float('inf')
         # for each frog on the board
 
         cached_board_state = self.cache.get_cached_board_state(curr_board.board)
         if cached_board_state is not None:
-
-            cached_board = MyBoard(cached_board_state.board,
-                                   red_frogs_positions=cached_board_state.red_frogs_positions,
-                                   blue_frogs_positions=cached_board_state.blue_frogs_positions
-                                   )
-
+            cached_board = MyBoard(
+                cached_board_state.board,
+                cached_board_state.red_frogs_positions,
+                cached_board_state.blue_frogs_positions)
             # if the board is already evaluated -> continue from here
             # if the board is not evaluated -> evaluate it again
-            return self.min_max_value(cached_board_state.board, color, depth, alpha, beta, maximizing_player)
+            return self.min_max_value(cached_board,
+                                      color,
+                                      depth,
+                                      cached_board_state.alpha,
+                                      cached_board_state.beta,
+                                      cached_board_state.action,
+                                      maximizing_player)
 
-        grow_value = self.min_max_value(self.apply_action(curr_board.copy(), GrowAction(), color), color, depth,
+        # if the board is already evaluated -> continue from here
+        # -----------------
+
+        #--------No need to continue hashing, because if the current state is not evaluated
+        # the following are new more or less
+
+        #------------------
+
+
+        #1.  copy the board
+        new_board = curr_board.deep_copy()
+        # apply the action
+        new_board.apply_action(GrowAction(), color)
+        grow_value = self.min_max_value(new_board, color, depth,
                                         alpha, beta,
+                                        GrowAction(),
                                         not maximizing_player)
         value = max(value, grow_value) if maximizing_player else min(value, grow_value)
 
@@ -623,17 +622,21 @@ class MinMaxSearch:
                 if curr_board.is_valid_move(move):
                     # apply the move (also removes the lily pad)
                     move_action = MoveAction(frog, direction)
-                    result = self.min_max_value(self.apply_action(curr_board.copy(), move_action, color),
+                    # copy board
+                    curr_board_copy = curr_board.deep_copy()
+                    # apply the action
+                    curr_board_copy.apply_action(move_action, color)
+                    # next level
+                    result = self.min_max_value(curr_board_copy,
                                                     opposite_color(color), depth,
                                                     alpha, beta,
+                                                    move_action,
                                                     not maximizing_player)
-
                     if maximizing_player:
                         value = max(value, result)
                         alpha = max(alpha, result)
                         if beta <= alpha:
                             break
-
                     else:
                         value = min(value, result)
                         beta = min(beta, result)
@@ -644,10 +647,16 @@ class MinMaxSearch:
                 elif curr_board.can_jump(move, direction):
                     # need to check every possible jumps
                     for jump in self.get_all_possible_jumps(frog, curr_board, color):
-                        result = self.min_max_value(self.apply_action(curr_board.copy(), jump, color),
+                        #copy the board
+                        curr_board_copy = curr_board.deep_copy()
+                        # apply the action
+                        curr_board_copy.apply_action(jump, color)
+                        # evaluate
+                        result = self.min_max_value(curr_board_copy,
                                                         opposite_color(color), depth,
                                                         alpha,
                                                         beta,
+                                                        jump,
                                                         not maximizing_player)
                         if maximizing_player:
                             value = max(value, result)
@@ -664,12 +673,31 @@ class MinMaxSearch:
         return value
     def min_max_value(self, curr_board: MyBoard, color: PlayerColor, depth: int,
                       alpha, beta,
+                      current_move: Action,
                       maximizing_player: bool) -> float | List[Action] | Action:
         new_depth = depth - 1
         if terminal_test(curr_board, new_depth):
-            return self.evaluation_function(curr_board, self.color)
-        return self.evaluate_min_max(curr_board, color, new_depth, alpha, beta, maximizing_player)
 
+            #if the board is already evaluated -> continue from here
+            cached_board_state = self.cache.get_cached_board_state(curr_board)
+            if cached_board_state is not None:
+                return cached_board_state.evaluation
+            #if not cached, we need to evaluate it again
+            evaluation = self.evaluation_function(curr_board,
+                                                  alpha,
+                                                  beta,
+                                                  current_move,
+                                                  self.color)
+            # store the evaluation
+            board_state = BoardState(curr_board.board, current_move, evaluation, alpha, beta,
+                                     curr_board.red_frogs_positions,
+                                     curr_board.blue_frogs_positions)
+            self.cache.store_board_state(curr_board, board_state)
+            return evaluation
+        return self.evaluate_min_max(curr_board, color, new_depth,
+                                     alpha, beta,
+                                     current_move,
+                                     maximizing_player)
     def get_best_move(self, my_color: PlayerColor) -> Action:
         """
         Finding the best move
@@ -687,86 +715,78 @@ class MinMaxSearch:
 
         cached_board_state = self.cache.get_cached_board_state(self.board)
         if cached_board_state is not None: # that means, we have already calculated the part of the board,
+            #
+            return
+        # Try a grow action first
+        # Growing adds lily pads adjacent to all frogs of the player's color
+        grow_action = GrowAction()
+        # copy
+        new_board = self.board.deep_copy()
+        # apply
+        new_board.apply_action(grow_action, self.color)
+        # Evaluate this state from opponent's perspective (minimizing player)
+        grow_value = self.min_max_value(new_board, opposite_color(self.color), explore_depth,
+                                        alpha, beta,
+                                        grow_action,
+                                        False)
 
-    #                                  # so we continue the search left before and keep delving deeper
-    #           # what resource we can use
-    #           # in the previous calculation, we decided the best move ->
-    #           # so we can keep use the best move and continue to explore
-    #           # but, the best move has already applied !
-    #           # that means, we want to know the next best move -> so it should be the next best move
-    #           # if the cached state exists
-    #           # we want to have the board
-    #           # apply the action
-    #           # continue to evaluate
-    #           # what if there is no best move?, because it is only being evaluated the score not the best move,
-    # #         # then we will still need to decide the best move
-    #
-    #     # Try a grow action first
-    #     # Growing adds lily pads adjacent to all frogs of the player's color
-    #     grow_action = GrowAction()
-    #
-    #     #-----------------Zobrist 0. check if the board is already cached
-    #         # if it is cached, -> get the cached board and results and continue it from there
-    #
-    #     #-----------------Zobrist 1. make a copy -> apply the changes
-    #     #-----------------Zobrist 2, apply action, we don't need to evaluate just yet
-    #
-    #     new_board = self.board.deep_copy()
-    #     new_board.apply_action(grow_action, self.color)
-    #
-    #
-    #     # Evaluate this state from opponent's perspective (minimizing player)
-    #     grow_value = self.min_max_value(new_board, opposite_color(self.color), explore_depth,
-    #                                     alpha, beta,
-    #                                     False)
-    #
-    #     # Update best move if grow action is better than current best
-    #     if grow_value > max_value:
-    #         max_value = grow_value
-    #         best_move = grow_action
-    #
-    #     # for each frog, we evaluate each possible move.
-    #     for frog_location in self.board.get_frog_coords(my_color):
-    #         for direction in get_possible_directions(my_color):
-    #             move_r = frog_location.r + direction.r
-    #             move_c = frog_location.c + direction.c
-    #             if not is_on_board(move_c, move_r):
-    #                 continue
-    #             # if the next cell is a lilypad
-    #             if self.board.is_valid_move(Coord(move_r, move_c)):
-    #                 # Create a move action with a single direction
-    #                 move_action = MoveAction(frog_location, direction)
-    #                 value = self.min_max_value(
-    #                     self.apply_action(self.board.copy(), move_action, my_color),
-    #                            opposite_color(my_color),
-    #                            explore_depth,
-    #                            alpha,
-    #                            beta,
-    #                            False)
-    #                 if value > max_value:
-    #                     max_value = value
-    #                     best_move = move_action
-    #                 alpha = max(alpha, value)
-    #                 if beta <= alpha:
-    #                     break
-    #
-    #             jump_start = Coord(move_r, move_c)
-    #             if self.board.can_jump(jump_start, direction):
-    #                 # need to check every possible jumps
-    #                 for jump in self.get_all_possible_jumps(frog_location, self.board, my_color):
-    #                     value = self.min_max_value(self.apply_action(self.board.copy(), jump, my_color),
-    #                                                opposite_color(my_color),
-    #                                                explore_depth,
-    #                                                alpha,
-    #                                                beta,
-    #                                                False)
-    #                     if value > max_value:
-    #                         max_value = value
-    #                         best_move = jump
-    #                     alpha = max(alpha, value)
-    #                     if beta <= alpha:
-    #                         break
-    #         if beta <= alpha:
-    #             break
-    #     #print("best move", best_move)
-    #     return best_move
+        # Update best move if grow action is better than current best
+        if grow_value > max_value:
+            max_value = grow_value
+            best_move = grow_action
+
+        # for each frog, we evaluate each possible move.
+        for frog_location in self.board.get_frog_coords(my_color):
+            for direction in get_possible_directions(my_color):
+                move_r = frog_location.r + direction.r
+                move_c = frog_location.c + direction.c
+                if not is_on_board(move_c, move_r):
+                    continue
+                # if the next cell is a lilypad
+                if self.board.is_valid_move(Coord(move_r, move_c)):
+                    move_action = MoveAction(frog_location, direction)
+                    # copy
+                    curr_board_copy = self.board.deep_copy()
+                    # apply
+                    curr_board_copy.apply_action(move_action, my_color)
+                    # Create a move action with a single direction
+                    value = self.min_max_value(
+                               curr_board_copy,
+                               opposite_color(my_color),
+                               explore_depth,
+                               alpha,
+                               beta,
+                               move_action,
+                               False)
+                    if value > max_value:
+                        max_value = value
+                        best_move = move_action
+                    alpha = max(alpha, value)
+                    if beta <= alpha:
+                        break
+
+                jump_start = Coord(move_r, move_c)
+                if self.board.can_jump(jump_start, direction):
+                    # need to check every possible jumps
+                    for jump in self.get_all_possible_jumps(frog_location, self.board, my_color):
+                        # copy
+                        curr_board_copy = self.board.deep_copy()
+                        # apply
+                        curr_board_copy.apply_action(jump, my_color)
+                        value = self.min_max_value(curr_board_copy,
+                                                   opposite_color(my_color),
+                                                   explore_depth,
+                                                   alpha,
+                                                   beta,
+                                                   jump,
+                                                   False)
+                        if value > max_value:
+                            max_value = value
+                            best_move = jump
+                        alpha = max(alpha, value)
+                        if beta <= alpha:
+                            break
+            if beta <= alpha:
+                break
+        #print("best move", best_move)
+        return best_move
