@@ -23,22 +23,28 @@ def get_grow_tiles(curr: Coord) -> list[Coord]:
 
 class MyBoard:
 
-    def __init__(self, board: list[list[str]]):
+    def __init__(self, board: list[list[str]], red_frogs_positions = None, blue_frogs_positions = None):
         self.board = board
         self.red_frogs_positions = set()
         self.blue_frogs_positions = set()
-        for row in range(BOARD_N):
-            for column in range(BOARD_N):
-                if column == 'r':
-                    self.red_frogs_positions.add(Coord(row, column))
-                elif column == 'b':
-                    self.blue_frogs_positions.add(Coord(row, column))
+
+        if red_frogs_positions is not None and blue_frogs_positions is not None:
+            self.red_frogs_positions = set(red_frogs_positions) # this is a copied instance
+            self.blue_frogs_positions = set(blue_frogs_positions) # this is a copied instance
+        else:
+            for row in range(BOARD_N):
+                for column in range(BOARD_N):
+                    cell = board[row][column]
+                    if cell == 'r':
+                        self.red_frogs_positions.add(Coord(row, column))
+                    elif cell == 'b':
+                        self.blue_frogs_positions.add(Coord(row, column))
 
     #how to update frog positions
     def get_frog_coords(self, color: PlayerColor) -> list[Coord]:
         return list(self.red_frogs_positions if color == PlayerColor.RED else self.blue_frogs_positions)
 
-    def apply_action(self, new_board: list[list[str]], action: Action, color: PlayerColor) -> list[list[str]]:
+    def apply_action(self, action: Action, color: PlayerColor) -> list[list[str]]:
         """
         Applying changes to the board
         data is "NOT" duplicated here, if want to copy, do it outside
@@ -52,8 +58,8 @@ class MyBoard:
                 directions = [directions]
 
             # remove the original player at the location
-            frog_color = new_board[action.coord.r][action.coord.c]
-            new_board[action.coord.r][action.coord.c] = '.'  # remove the frog
+            frog_color = self.board[action.coord.r][action.coord.c]
+            self.board[action.coord.r][action.coord.c] = '.'  # remove the frog
 
             # move the frog
             curr_r = action.coord.r
@@ -64,11 +70,11 @@ class MyBoard:
                 new_c = curr_c + direction.c
                 if is_on_board(new_r, new_c):
                     # considering jump
-                    if new_board[curr_r][curr_c] in ['r', 'b']:
+                    if self.board[curr_r][curr_c] in ['r', 'b']:
                         curr_r += direction.r
                         curr_c += direction.c
             # destination
-            new_board[curr_r][curr_c] = frog_color
+            self.board[curr_r][curr_c] = frog_color
             self.update_frog_positions(action.coord, Coord(curr_r, curr_c))
         # grow around the player
         elif isinstance(action, GrowAction):
@@ -77,9 +83,9 @@ class MyBoard:
                 # for all frogs
                 for grow_tile in get_grow_tiles(frog):
                     # if the tile is empty
-                    if grow_tile not in new_board:
-                        new_board[grow_tile.r][grow_tile.c] = 'l'
-        return new_board
+                    if grow_tile not in self.board:
+                        self.board[grow_tile.r][grow_tile.c] = 'l'
+        return self.board
 
     def is_valid_move(self, move: Coord) -> bool:
         """
@@ -144,10 +150,18 @@ class MyBoard:
             return self.board[landing_r][landing_c] == 'l'
         return False
 
+    def deep_copy(self)-> "MyBoard":
+        """
+        Create a deep copy of the board
+        """
+        return MyBoard(self.board.copy(), self.red_frogs_positions, self.blue_frogs_positions)
 
 class BoardState:
-    def __init__(self, action: Action, evaluation : float, alpha : float, beta : float):
-        self.best_move = action
+    def __init__(self,board :list[list[str]], action: Action, evaluation : float, alpha : float, beta : float, red_frog_positions, blue_frogs_positions):
+        self.board : list[list[str]] = board.copy()
+        self.red_frogs_positions : red_frog_positions.copy()
+        self.blue_frogs_positions : blue_frogs_positions.copy()
+        self.best_move = action.copy()
         self.evaluation = evaluation
         self.alpha = alpha
         self.beta = beta
@@ -222,7 +236,7 @@ class TranspositionTable:
                 self.cache.pop(next(iter(self.cache)))
             self.cache[hash_key] = board_state
 
-    def get_cached_board(self, curr_board) -> BoardState | None:
+    def get_cached_board_state(self, curr_board) -> BoardState | None:
         """
         get the cached board
         1. get the hash key
@@ -375,7 +389,6 @@ class Agent:
         self._search_depth = 5 # error when search depth is 1
         self.__brain = MinMaxSearch(self._board, self._search_depth, self.__color)
 
-        #self.__print_board()
 
 
 
@@ -507,9 +520,9 @@ class MinMaxSearch:
         Evaluate the board state. Higher values are better for the player.
         """
         # Check if the board state is already cached
-        cached_value = self.cache.get_cached_board(curr_board.board)
-        if cached_value is not None:
-            return cached_value.evaluation
+        cached_board = self.cache.get_cached_board(curr_board.board)
+        if cached_board is not None:
+            return cached_board.evaluation
         frog_color = None
         opponent_color = None
         if my_player_color == PlayerColor.RED:
@@ -580,6 +593,7 @@ class MinMaxSearch:
                          maximizing_player: bool):
         value = float('-inf') if maximizing_player else float('inf')
         # for each frog on the board
+
         grow_value = self.min_max_value(self.apply_action(curr_board.copy(), GrowAction(), color), color, depth,
                                         alpha, beta,
                                         not maximizing_player)
@@ -659,11 +673,34 @@ class MinMaxSearch:
         best_move = None  # No move selected yet
         explore_depth = self.depth - 1
 
+        cached_board_state = self.cache.get_cached_board_state(self.board)
+        if cached_board_state is not None: # that means, we have already calculated the part of the board,
+                                     # so we continue the search left before and keep delving deeper
+              # what resource we can use
+              # in the previous calculation, we decided the best move ->
+              # so we can keep use the best move and continue to explore
+              # but, the best move has already applied !
+              # that means, we want to know the next best move -> so it should be the next best move
+              # if the cached state exists
+              # we want to have the board
+              # apply the action
+              # continue to evaluate
+              # what if there is no best move?, because it is only being evaluated the score not the best move,
+    #         # then we will still need to decide the best move
+
         # Try a grow action first
         # Growing adds lily pads adjacent to all frogs of the player's color
         grow_action = GrowAction()
 
-        new_board = self.apply_action(self.board.copy(), grow_action, self.color)  # Create new board state after grow
+        #-----------------Zobrist 0. check if the board is already cached
+            # if it is cached, -> get the cached board and results and continue it from there
+
+        #-----------------Zobrist 1. make a copy -> apply the changes
+        #-----------------Zobrist 2, apply action, we don't need to evaluate just yet
+
+        new_board = self.board.deep_copy()
+        new_board.apply_action(grow_action, self.color)
+
 
         # Evaluate this state from opponent's perspective (minimizing player)
         grow_value = self.min_max_value(new_board, opposite_color(self.color), explore_depth,
