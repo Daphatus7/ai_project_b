@@ -210,20 +210,14 @@ class MyBoard:
                     self.blue_frogs_positions.copy())
 
 class BoardState:
-    def __init__(self,board :list[list[str]], action: Action, evaluation : float, alpha : float, beta : float, red_frog_positions, blue_frogs_positions):
-        self.board = [row[:] for row in board]
-        self.red_frogs_positions = red_frog_positions.copy()
-        self.blue_frogs_positions = blue_frogs_positions.copy()
-        self.action = action
+    def __init__(self, evaluation : float):
         self.evaluation = evaluation
-        self.alpha = alpha
-        self.beta = beta
 
 ##https://www.youtube.com/watch?v=QYNRvMolN20&t=201s
 ##https://www.geeksforgeeks.org/minimax-algorithm-in-game-theory-set-5-zobrist-hashing/
 class TranspositionTable:
     def __init__(self):
-        self.size = 90000 # safe estimation
+        self.size = 300000 # safe estimation
         self.cache = {}
         random.seed(39)
 
@@ -535,9 +529,7 @@ class MinMaxSearch:
 
         # store the evaluation result in the cache
 
-        board_state = BoardState(curr_board.board, current_move, total_score, alpha, beta,
-                                 curr_board.red_frogs_positions,
-                                 curr_board.blue_frogs_positions)
+        board_state = BoardState(total_score)
         self.cache.store_board_state(curr_board.hash_key, board_state)
         return total_score
 
