@@ -223,7 +223,7 @@ class BoardState:
 ##https://www.geeksforgeeks.org/minimax-algorithm-in-game-theory-set-5-zobrist-hashing/
 class TranspositionTable:
     def __init__(self):
-        self.size = 90000 # safe estimation
+        self.size = 120000 # safe estimation
         self.cache = {}
         random.seed(39)
 
