@@ -3,7 +3,7 @@
 
 import heapq
 from typing import List
-from referee.game.board import BOARD_N, Board
+from referee.game.board import BOARD_N
 from referee.game import Action, Coord, PlayerColor, Direction, MoveAction, GrowAction
 import random
 
@@ -28,6 +28,7 @@ def get_cell_value(cell: str) -> int | None:
 def get_hashing_key(board: list[list[str]]) -> int:
     """
     Generate the zobrist key for the given board
+    XOR ever cells to get an unique zobrist key
     """
     hash_key = 0
     for row in range(BOARD_N):
@@ -46,7 +47,6 @@ def get_grow_tiles(curr: Coord) -> list[Coord]:
     grow in 8 directions
     """
     grow_tiles = []
-
     for row, column in [(-1, -1), (-1, 0), (-1, 1), (0, -1), (0, 1), (1, -1), (1, 0), (1, 1)]:
         new_row = curr.r + row
         new_col = curr.c + column
@@ -55,13 +55,17 @@ def get_grow_tiles(curr: Coord) -> list[Coord]:
     return grow_tiles
 
 class MyBoard:
-
+    """
+    A working board class that stores the board state
+    """
     def __init__(self, board: list[list[str]], red_frogs_positions = None, blue_frogs_positions = None):
         self.board = board
         self.red_frogs_positions = set()
         self.blue_frogs_positions = set()
+        # generate a key
         self.hash_key = get_hashing_key(board)
 
+        # check if the frogs are already given
         if red_frogs_positions is not None and blue_frogs_positions is not None:
             self.red_frogs_positions = set(red_frogs_positions) # this is a copied instance
             self.blue_frogs_positions = set(blue_frogs_positions) # this is a copied instance
@@ -77,8 +81,10 @@ class MyBoard:
 
 
 
-    #how to update frog positions
     def get_frog_coords(self, color: PlayerColor) -> list[Coord]:
+        """
+        Return stored frogs position converting set to list
+        """
         return list(self.red_frogs_positions if color == PlayerColor.RED else self.blue_frogs_positions)
 
     def apply_action(self, action: Action, color: PlayerColor) -> list[list[str]]:
@@ -146,7 +152,7 @@ class MyBoard:
 
     def __update_frog_positions(self, frog: Coord, frog_new_coord: Coord):
         """
-        the frog must be either red or blue
+        the frog must be either red or blue - called internally to update the frog positions
         """
         if frog in self.red_frogs_positions:
             self.red_frogs_positions.remove(frog)
@@ -156,6 +162,9 @@ class MyBoard:
             self.blue_frogs_positions.add(frog_new_coord)
 
     def valid_landing_spot(self, coord : Coord) -> bool:
+        """
+        is a lily pad
+        """
         return (self.board[coord.r][coord.c] == 'l' and
                 self.board[coord.r][coord.c] != 'r' and
                 self.board[coord.r][coord.c] != 'b')
@@ -210,12 +219,19 @@ class MyBoard:
                     self.blue_frogs_positions.copy())
 
 class BoardState:
+    """
+    Keep track of the board state stored in the cache
+    Wanted to record more indepth data, but is redundant for now
+    """
     def __init__(self, evaluation : float):
         self.evaluation = evaluation
 
-##https://www.youtube.com/watch?v=QYNRvMolN20&t=201s
-##https://www.geeksforgeeks.org/minimax-algorithm-in-game-theory-set-5-zobrist-hashing/
 class TranspositionTable:
+    """
+    We used the tutorial from the following link to implement the transposition table and zobrist hashing
+    ##https://www.youtube.com/watch?v=QYNRvMolN20&t=201s
+    ##https://www.geeksforgeeks.org/minimax-algorithm-in-game-theory-set-5-zobrist-hashing/
+    """
     def __init__(self):
         self.size = 300000 # safe estimation
         self.cache = {}
@@ -273,7 +289,7 @@ def pathfinding(my_board : MyBoard, start: Coord, my_color: PlayerColor) -> int 
     action_list = []
     closed = set()
     curr_board = my_board.board
-    goal_row = BOARD_N - 1 if my_color == PlayerColor.RED else 0
+    goal_row = BOARD_N - 1 if my_color == PlayerColor.RED else 0 #to check the distance
     goals =[] # all possible goal positions
     for column in range(BOARD_N):
         if my_board.valid_landing_spot(Coord(goal_row, column)):
@@ -322,6 +338,9 @@ def pathfinding(my_board : MyBoard, start: Coord, my_color: PlayerColor) -> int 
 
 # Check if the coordinates are within the board boundaries
 def is_on_board(r, c):
+    """
+    Check is withing the range of the the frog
+    """
     return 0 <= r < BOARD_N and 0 <= c < BOARD_N
 
 # A* search algorithm
@@ -341,6 +360,7 @@ class Agent:
         """ # Setup initial board state
         print("\nSetting up initial board state...") """
 
+        # initialise the board
         # Corner lily pads
         for row in [0, BOARD_N - 1]:
             for column in [0, BOARD_N - 1]:
@@ -380,18 +400,9 @@ class Agent:
         This method is called by the referee after a player has taken their
         turn. You should use it to update the agent's internal game state.
         """
-        #print("referee update actions",  action)
-        #print("----------Before-------------")
-        #self.__print_board()
         self.__brain.update_board(action, color)
-        # Print remaining referee time
         print(f"Referee time remaining: {referee['time_remaining']} seconds")
         print(f"Referee Space remaining: {referee['space_remaining']} bytes")
-        #printout board
-        #print("----------After-------------")
-        #self.__print_board()
-
-
 
 def opposite_color(color: PlayerColor) -> PlayerColor | None:
     """
@@ -489,9 +500,6 @@ class MinMaxSearch:
 
 
     def evaluation_function(self, curr_board: MyBoard,
-                            alpha: float,
-                            beta: float,
-                            current_move: Action,
                             my_player_color: PlayerColor) -> float:
         """
         Evaluate the board state. Higher values are better for the player.
@@ -502,6 +510,9 @@ class MinMaxSearch:
             return cached_board_state.evaluation
 
         def evaluate_distance_score(frogs: list[Coord], color: PlayerColor)-> float:
+            """
+            the more close to the goal row, the higher the score
+            """
             score = 0
             goal_row = BOARD_N - 1 if color == PlayerColor.RED else 0
             for frog in frogs:
@@ -528,29 +539,36 @@ class MinMaxSearch:
         total_score = my_score - opponent_score
 
         # store the evaluation result in the cache
-
         board_state = BoardState(total_score)
         self.cache.store_board_state(curr_board.hash_key, board_state)
         return total_score
 
     def get_all_possible_jumps(self, start_coord: Coord, initial_board: MyBoard, color: PlayerColor) -> list[Action]:
         """
+        It returns all possible jumps for the frogs
+        either one jump to the end or multiple jumps
         Instead of returning the end coord, it should return all possible actions
         """
         moves: List[Action] = []
 
         def dfs(curr: Coord, path: List[Direction], visited: set[Coord]) -> None:
             can_jump = False
+
+            # check every possible direction
             for direction in get_possible_directions(color):
                 converted_coord = convert_direction_to_coord(direction)
                 n_r = curr.r + converted_coord[0]
                 n_c = curr.c + converted_coord[1]
+                # check if the next cell is on the board
                 if is_on_board(n_r, n_c):  # check if the next cell is on the board
                     neighbour = Coord(n_r, n_c)
+                    # check if has visited the cell
                     if not neighbour in visited:  # check if the next cell is already visited
+                        # check if the next cell is a frog and the next is a lily pad
                         if initial_board.can_jump(neighbour, direction):
                             landing_node = Coord(neighbour.r + converted_coord[0], neighbour.c + converted_coord[1])
                             can_jump = True
+                            # merge the path
                             dfs(landing_node, path + [direction], visited | {neighbour, landing_node})
             # cannot jump anymore
             if not can_jump:
@@ -563,26 +581,11 @@ class MinMaxSearch:
                          alpha, beta,
                          current_move : Action,
                          maximizing_player: bool):
+        """
+        MinMax algorithm
+        """
         value = float('-inf') if maximizing_player else float('inf')
-        # for each frog on the board
-
-        # cached_board_state = self.cache.get_cached_board_state(curr_board.hash_key)
-        # if cached_board_state is not None: # that means, we have already calculated the part of the board,
-        #     cached_board = MyBoard(
-        #         cached_board_state.board,
-        #         cached_board_state.red_frogs_positions,
-        #         cached_board_state.blue_frogs_positions)
-        # #     # if the board is already evaluated -> continue from here
-        # #     # if the board is not evaluated -> evaluate it again
-        #     best_action = cached_board_state.action
-        #
-        #     return self.min_max_value(cached_board,
-        #                               color,
-        #                               depth,
-        #                               cached_board_state.alpha,
-        #                               cached_board_state.beta,
-        #                               cached_board_state.action,
-        #                               maximizing_player)
+        # for each frog on the boar
 
         #1.  copy the board
         new_board = curr_board.deep_copy()
@@ -639,13 +642,14 @@ class MinMaxSearch:
                         curr_board_copy = curr_board.deep_copy()
                         # apply the action
                         curr_board_copy.apply_action(jump, color)
-                        # evaluate
+                        # evaluate jumps
                         result = self.min_max_value(curr_board_copy,
                                                         opposite_color(color), depth,
                                                         alpha,
                                                         beta,
                                                         jump,
                                                         not maximizing_player)
+                        # pruning
                         if maximizing_player:
                             value = max(value, result)
                             alpha = max(alpha, result)
@@ -660,6 +664,7 @@ class MinMaxSearch:
                                 self.nodes_pruned += 1
                                 self.total_nodes_pruned += 1
                                 break
+                # pruning
             if beta <= alpha:
                 self.nodes_pruned += 1
                 self.total_nodes_pruned += 1
@@ -669,14 +674,14 @@ class MinMaxSearch:
                       alpha, beta,
                       current_move: Action,
                       maximizing_player: bool) -> float | List[Action] | Action:
+        """
+        To avoid repeated code
+        """
         self.nodes_explored += 1
         self.total_nodes_explored += 1
         new_depth = depth - 1
         if terminal_test(curr_board, new_depth):
             evaluation = self.evaluation_function(curr_board,
-                                                  alpha,
-                                                  beta,
-                                                  current_move,
                                                   self.color)
             return evaluation
         return self.evaluate_min_max(curr_board, color, new_depth,
@@ -689,6 +694,8 @@ class MinMaxSearch:
         1. because we only care about the next move
         2. we estimate the impact of next move
         3. then we conclude if the next move is the best
+
+        Becasue this requires return an action, so the function is moved to the outside
         """
         self.nodes_explored = 0
         self.nodes_pruned = 0
@@ -696,20 +703,17 @@ class MinMaxSearch:
         max_value = float('-inf')
         alpha = float('-inf')
         beta = float('inf')
+
         best_move = None  # No move selected yet
         explore_depth = self.get_dynamic_depth(self.board)
 
-        # cached_board_state = self.cache.get_cached_board_state(self.board)
-        # if cached_board_state is not None: # that means, we have already calculated the part of the board,
-        #     return cached_board_state.action
-        # Try a grow action first
-        # Growing adds lily pads adjacent to all frogs of the player's color
+
         grow_action = GrowAction()
-        # copy
+        # copy board
         new_board = self.board.deep_copy()
-        # apply
+        # apply changes
         new_board.apply_action(grow_action, self.color)
-        # Evaluate this state from opponent's perspective (minimizing player)
+        # eve grow action
         grow_value = self.min_max_value(new_board, opposite_color(self.color), explore_depth,
                                         alpha, beta,
                                         grow_action,
@@ -730,9 +734,9 @@ class MinMaxSearch:
                 # if the next cell is a lilypad
                 if self.board.is_valid_move(Coord(move_r, move_c)):
                     move_action = MoveAction(frog_location, direction)
-                    # copy
+                    # copy board
                     curr_board_copy = self.board.deep_copy()
-                    # apply
+                    # apply board
                     curr_board_copy.apply_action(move_action, my_color)
                     # Create a move action with a single direction
                     value = self.min_max_value(
@@ -754,12 +758,13 @@ class MinMaxSearch:
 
                 jump_start = Coord(move_r, move_c)
                 if self.board.can_jump(jump_start, direction):
-                    # need to check every possible jumps
+                    # get all possible jumps
                     for jump in self.get_all_possible_jumps(frog_location, self.board, my_color):
-                        # copy
+                        # copy board
                         curr_board_copy = self.board.deep_copy()
-                        # apply
+                        # apply changes
                         curr_board_copy.apply_action(jump, my_color)
+                        # evaluate jumps
                         value = self.min_max_value(curr_board_copy,
                                                    opposite_color(my_color),
                                                    explore_depth,
@@ -767,6 +772,8 @@ class MinMaxSearch:
                                                    beta,
                                                    jump,
                                                    False)
+
+                        # pruning
                         if value > max_value:
                             max_value = value
                             best_move = jump
@@ -788,7 +795,9 @@ class MinMaxSearch:
         return best_move
 
     def at_critical_pos(self, board: MyBoard) -> bool:
-        """check if frogs are close to goal"""
+        """
+        Check if most of the frogs are at the center area
+        """
         my_frogs = board.get_frog_coords(self.color)
         goal_row = BOARD_N - 1 if self.color == PlayerColor.RED else 0
         critical_positions = sum(1 for frog in my_frogs if abs(frog.r - goal_row) <= 3)
@@ -797,14 +806,18 @@ class MinMaxSearch:
         return False
 
     def in_late_game(self, board: MyBoard) -> bool:
-        # late in game, most frogs close to goal
+        """
+        late in game, most frogs close to goal
+        """
         my_frogs = board.get_frog_coords(self.color)
         goal_row = BOARD_N - 1 if self.color == PlayerColor.RED else 0
         late_pos_count = sum(1 for frog in my_frogs if abs(frog.r - goal_row) <= 2)
         return late_pos_count > len(my_frogs) // 2
 
     def get_dynamic_depth(self, board: MyBoard) -> int:
-        """depth based on game state"""
+        """
+        distance based depth adjustment
+        """
         if self.at_critical_pos(board):
             return self.base_depth + 1
         elif self.in_late_game(board):
